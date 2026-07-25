@@ -1,7 +1,10 @@
 import {
+  GLOBAL_SPEED_INCREMENT,
   INITIAL_BODY_LENGTH,
   INITIAL_BODY_POINTS,
+  INITIAL_GLOBAL_SPEED,
   INITIAL_LIVES,
+  LEVEL_INTERVAL,
   MAX_ENEMIES,
   WORLD_HEIGHT,
   WORLD_WIDTH,
@@ -177,6 +180,9 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     shieldCharges: 0,
     powerUpSpawnClock: 0,
     nextPowerUpId: 0,
+    level: 1,
+    globalSpeed: INITIAL_GLOBAL_SPEED,
+    levelClock: 0,
   };
 
   appendEnemy(game, random, {
@@ -192,7 +198,7 @@ export function snapshotHud(game: GameState): HudSnapshot {
     kills: game.kills,
     lives: game.lives,
     length: Math.round(game.bodyLength),
-    level: levelFor(game.kills),
+    level: game.level,
     enemyLimit: enemyLimitFor(game.kills),
     nextGrowth: Math.max(1, 5 - (game.kills % 5)),
     message: game.message,
@@ -239,11 +245,25 @@ export function updateGame(
   collisions: CollisionSystem = nativeCollisionSystem,
 ): GameEvent[] {
   const events: GameEvent[] = [];
-  game.elapsed += delta;
-  game.closureCooldown = Math.max(0, game.closureCooldown - delta);
-  game.closureFlash = Math.max(0, game.closureFlash - delta * 1.4);
-  game.invulnerable = Math.max(0, game.invulnerable - delta);
-  tickPowerUpEffects(game, delta);
+
+  // 全局速度倍率影响一切时间推进
+  const effectiveDelta = delta * game.globalSpeed;
+  game.elapsed += effectiveDelta;
+  game.closureCooldown = Math.max(0, game.closureCooldown - effectiveDelta);
+  game.closureFlash = Math.max(0, game.closureFlash - effectiveDelta * 1.4);
+  game.invulnerable = Math.max(0, game.invulnerable - effectiveDelta);
+  tickPowerUpEffects(game, effectiveDelta);
+
+  // 关卡推进
+  game.levelClock += delta;
+  if (game.levelClock >= LEVEL_INTERVAL) {
+    game.levelClock -= LEVEL_INTERVAL;
+    game.level += 1;
+    game.globalSpeed = INITIAL_GLOBAL_SPEED + GLOBAL_SPEED_INCREMENT * (game.level - 1);
+    game.message = `第 ${game.level} 关！全局速度 x${game.globalSpeed.toFixed(1)}`;
+    events.push({ type: "level-up", level: game.level });
+  }
+
   const frameModifiers = powerUpModifiers(game);
 
   const head = game.trail.at(-1);
@@ -255,7 +275,7 @@ export function updateGame(
       game.target.x - head.x,
     );
     const turnLimit =
-      delta *
+      effectiveDelta *
       (3.3 - Math.min(0.65, game.kills * 0.012)) *
       frameModifiers.snakeTurn;
     const turn = Math.max(
@@ -268,8 +288,8 @@ export function updateGame(
   const speed =
     (150 + Math.min(42, game.kills * 1.25)) * frameModifiers.snakeSpeed;
   const nextHead = {
-    x: head.x + Math.cos(game.angle) * speed * delta,
-    y: head.y + Math.sin(game.angle) * speed * delta,
+    x: head.x + Math.cos(game.angle) * speed * effectiveDelta,
+    y: head.y + Math.sin(game.angle) * speed * effectiveDelta,
   };
 
   if (nextHead.x < 14 || nextHead.x > WORLD_WIDTH - 14) {
@@ -287,7 +307,7 @@ export function updateGame(
   game.trail.push(nextHead);
   trimTrailToLength(game.trail, game.bodyLength);
 
-  game.spawnClock = game.tutorialComplete ? game.spawnClock + delta : 0;
+  game.spawnClock = game.tutorialComplete ? game.spawnClock + effectiveDelta : 0;
   const spawnInterval = Math.max(0.48, 1.35 - game.kills * 0.025);
   if (
     game.tutorialComplete &&
@@ -303,14 +323,14 @@ export function updateGame(
 
   if (game.tutorialComplete) {
     events.push(
-      ...updatePowerUps(game, liveHead, delta, random, collisions),
+      ...updatePowerUps(game, liveHead, effectiveDelta, random, collisions),
     );
   }
   const activeModifiers = powerUpModifiers(game);
   updateEnemyMotion(
     game.enemies,
     liveHead,
-    delta,
+    effectiveDelta,
     random,
     activeModifiers.enemySpeed,
   );

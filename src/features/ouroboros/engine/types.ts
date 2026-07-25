@@ -65,6 +65,12 @@ export interface GameState {
   shieldCharges: number;
   powerUpSpawnClock: number;
   nextPowerUpId: number;
+  /** 当前关卡（基于时间推进） */
+  level: number;
+  /** 全局速度倍率，影响一切速度 */
+  globalSpeed: number;
+  /** 关卡计时器（秒） */
+  levelClock: number;
 }
 
 export interface BuffSnapshot {
@@ -113,7 +119,8 @@ export type GameEvent =
   | { type: "empty-loop" }
   | { type: "game-over" }
   | { type: "power-up-collected"; kind: PowerUpKind }
-  | { type: "shield-blocked" };
+  | { type: "shield-blocked" }
+  | { type: "level-up"; level: number };
 
 export type CardinalDirection = "up" | "down" | "left" | "right";
 

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import {
   BODY_WIDTH,
   HEAD_RADIUS,
+  levelColor,
   TAIL_RADIUS,
   WORLD_HEIGHT,
   WORLD_WIDTH,
@@ -60,6 +61,8 @@ export class OuroborosSceneView {
   private readonly enemies = new Map<number, EnemyView>();
   private readonly powerUps = new Map<number, PowerUpView>();
   private introRevealing = false;
+  private currentLevel = 1;
+  private bgColor: number = COLORS.stage;
 
   constructor(private readonly scene: Phaser.Scene) {
     this.background = scene.add.graphics().setDepth(0);
@@ -67,11 +70,19 @@ export class OuroborosSceneView {
     this.body = scene.add.graphics().setDepth(3);
     this.head = scene.add.graphics().setDepth(4);
 
-    this.drawBackground();
+    this.drawBackground(COLORS.stage);
     this.drawHead();
   }
 
   render(game: GameState): void {
+    // 关卡变化时切换背景色
+    if (game.level !== this.currentLevel) {
+      this.currentLevel = game.level;
+      const hexColor = levelColor(game.level);
+      this.bgColor = parseInt(hexColor.slice(1), 16);
+      this.redrawBackground();
+    }
+
     this.drawRing(game);
     this.syncEnemies(game);
     this.syncPowerUps(game);
@@ -174,6 +185,13 @@ export class OuroborosSceneView {
     }
   }
 
+  /** 清除并重绘背景（世界尺寸或关卡变化后调用） */
+  redrawBackground(): void {
+    this.background.clear();
+    this.drawBackground(this.bgColor);
+  }
+  }
+
   destroy(): void {
     for (const view of this.enemies.values()) view.container.destroy(true);
     this.enemies.clear();
@@ -181,8 +199,8 @@ export class OuroborosSceneView {
     this.powerUps.clear();
   }
 
-  private drawBackground(): void {
-    this.background.fillStyle(COLORS.stage, 1);
+  private drawBackground(color: number = COLORS.stage): void {
+    this.background.fillStyle(color, 1);
     this.background.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.background.lineStyle(1, COLORS.stageLine, 0.1);
 
