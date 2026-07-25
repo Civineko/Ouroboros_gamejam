@@ -1,133 +1,85 @@
 import Phaser from "phaser";
 import {
   BODY_WIDTH,
+  BULLET_HIT_LENGTH_PENALTY,
+  HEAD_RADIUS,
   levelColor,
+  TAIL_RADIUS,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "../engine/config";
-import type { Enemy, GameState, Point, PowerUp } from "../engine/types";
-import { OUROBOROS_ART_KEYS } from "./assets/assetCatalog";
+import type { Bullet, Enemy, GameState, Point, PowerUp } from "../engine/types";
+import { paintEnemyIcon } from "./assets/placeholders/enemyIconPainters";
+import { paintPowerUpIcon } from "./assets/placeholders/powerUpIconPainters";
 
 const COLORS = {
-  body: 0x58c9a7,
-  bodyOutline: 0x101b1d,
+  stage: 0x48678f,
+  stageLine: 0xfffdf7,
+  stageBorder: 0xfffdf7,
+  ink: 0x263b42,
+  shadow: 0x192531,
+  body: 0x5c9e94,
   bodyFlash: 0xf4d872,
+  bodyHighlight: 0xffffff,
+  tail: 0xfff9ec,
+  tailCore: 0xef624f,
+  head: 0xf2ba49,
 } as const;
-
-const TAIL_END_INDEX = 12;
-const BODY_TAIL_OVERLAP = 2;
-const ENEMY_VISUAL_DIAMETER_SCALE = 3.2;
 
 interface EnemyView {
   container: Phaser.GameObjects.Container;
-  image: Phaser.GameObjects.Image;
+  graphics: Phaser.GameObjects.Graphics;
+}
+
+interface BulletView {
+  graphics: Phaser.GameObjects.Graphics;
 }
 
 interface PowerUpView {
   container: Phaser.GameObjects.Container;
-  image: Phaser.GameObjects.Image;
-}
-
-function enemyTexture(enemy: Enemy): string {
-  if (enemy.kind === "wanderer") return OUROBOROS_ART_KEYS.enemyWanderer;
-  if (enemy.kind === "tracker") return OUROBOROS_ART_KEYS.enemyTracker;
-  return OUROBOROS_ART_KEYS.enemyStationary;
-}
-
-function powerUpTexture(powerUp: PowerUp): string {
-  if (powerUp.kind === "heal") return OUROBOROS_ART_KEYS.powerUpHeal;
-  if (powerUp.kind === "stasis") return OUROBOROS_ART_KEYS.powerUpStasis;
-  if (powerUp.kind === "haste") return OUROBOROS_ART_KEYS.powerUpHaste;
-  if (powerUp.kind === "resonance") {
-    return OUROBOROS_ART_KEYS.powerUpResonance;
-  }
-  return OUROBOROS_ART_KEYS.powerUpShield;
+  graphics: Phaser.GameObjects.Graphics;
 }
 
 function traceTrail(
   graphics: Phaser.GameObjects.Graphics,
   trail: readonly Point[],
+  offsetX = 0,
+  offsetY = 0,
 ): void {
   const first = trail[0];
   if (!first) return;
 
   graphics.beginPath();
-  graphics.moveTo(first.x, first.y);
+  graphics.moveTo(first.x + offsetX, first.y + offsetY);
   for (let index = 1; index < trail.length; index += 1) {
     const point = trail[index];
-    if (point) graphics.lineTo(point.x, point.y);
+    if (point) graphics.lineTo(point.x + offsetX, point.y + offsetY);
   }
   graphics.strokePath();
 }
 
 export class OuroborosSceneView {
-  private readonly background: Phaser.GameObjects.TileSprite;
+  private readonly background: Phaser.GameObjects.Graphics;
   private readonly ring: Phaser.GameObjects.Graphics;
-  private readonly body: Phaser.GameObjects.Container;
-  private readonly tailRope: Phaser.GameObjects.Rope;
-  private readonly bodyRope: Phaser.GameObjects.Rope;
-  private readonly bodyFallback: Phaser.GameObjects.Graphics;
-  private readonly head: Phaser.GameObjects.Image;
-  private readonly headScaleX: number;
-  private readonly headScaleY: number;
-  private readonly supportsRope: boolean;
+  private readonly body: Phaser.GameObjects.Graphics;
+  private readonly head: Phaser.GameObjects.Graphics;
+  private readonly headFlash: Phaser.GameObjects.Graphics;
   private readonly enemies = new Map<number, EnemyView>();
+  private readonly bullets = new Map<number, BulletView>();
   private readonly powerUps = new Map<number, PowerUpView>();
   private introRevealing = false;
   private currentLevel = 1;
-  private bgColor = parseInt(levelColor(1).slice(1), 16);
+  private bgColor: number = COLORS.stage;
 
   constructor(private readonly scene: Phaser.Scene) {
-    this.background = scene.add
-      .tileSprite(
-        0,
-        0,
-        WORLD_WIDTH,
-        WORLD_HEIGHT,
-        OUROBOROS_ART_KEYS.stageBackground,
-      )
-      .setOrigin(0)
-      .setTileScale(0.75)
-      .setDepth(0);
-    this.redrawBackground();
+    this.background = scene.add.graphics().setDepth(0);
     this.ring = scene.add.graphics().setDepth(1);
-    this.body = scene.add.container(0, 0).setDepth(3);
+    this.body = scene.add.graphics().setDepth(3);
+    this.head = scene.add.graphics().setDepth(4);
+    this.headFlash = scene.add.graphics().setDepth(5);
 
-    const initialRopePoints = [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-    ];
-    this.tailRope = scene.add.rope(
-      0,
-      0,
-      OUROBOROS_ART_KEYS.snakeTail,
-      undefined,
-      initialRopePoints,
-      true,
-    );
-    this.bodyRope = scene.add.rope(
-      0,
-      0,
-      OUROBOROS_ART_KEYS.snakeBody,
-      undefined,
-      initialRopePoints,
-      true,
-    );
-    this.bodyFallback = scene.add.graphics();
-    this.body.add([this.tailRope, this.bodyRope, this.bodyFallback]);
-
-    this.supportsRope = scene.game.renderer.type === Phaser.WEBGL;
-    this.tailRope.setVisible(this.supportsRope);
-    this.bodyRope.setVisible(this.supportsRope);
-    this.bodyFallback.setVisible(!this.supportsRope);
-
-    this.head = scene.add
-      .image(0, 0, OUROBOROS_ART_KEYS.snakeHead)
-      .setDisplaySize(58, 38)
-      .setOrigin(0.42, 0.5)
-      .setDepth(4);
-    this.headScaleX = this.head.scaleX;
-    this.headScaleY = this.head.scaleY;
+    this.drawBackground(COLORS.stage);
+    this.drawHead();
   }
 
   render(game: GameState): void {
@@ -141,18 +93,29 @@ export class OuroborosSceneView {
 
     this.drawRing(game);
     this.syncEnemies(game);
+    this.syncBullets(game);
     this.syncPowerUps(game);
     this.drawBody(game);
 
     const head = game.trail.at(-1);
     if (head) {
-      this.head.setPosition(head.x, head.y).setRotation(game.angle);
+      this.head.setPosition(head.x, head.y);
+      this.head.setRotation(game.angle);
       if (!this.introRevealing) {
         this.head.setAlpha(
           game.invulnerable > 0 && Math.floor(game.invulnerable * 12) % 2 === 0
             ? 0.45
             : 1,
         );
+      }
+
+      // 被子弹命中红色闪烁
+      this.headFlash.clear();
+      this.headFlash.setPosition(head.x, head.y);
+      if (game.bulletHitFlash > 0) {
+        const alpha = Math.floor(game.bulletHitFlash * 20) % 2 === 0 ? 0.7 : 0.3;
+        this.headFlash.fillStyle(0xff3030, alpha);
+        this.headFlash.fillCircle(0, 0, HEAD_RADIUS + 4);
       }
     }
   }
@@ -170,9 +133,7 @@ export class OuroborosSceneView {
       .setAlpha(0)
       .setScale(0.78)
       .setPosition(centerX * 0.22, centerY * 0.22);
-    this.head
-      .setAlpha(0)
-      .setScale(this.headScaleX * 0.24, this.headScaleY * 0.24);
+    this.head.setAlpha(0).setScale(0.24);
 
     for (const view of this.enemies.values()) {
       view.container.setAlpha(0).setScale(0.18);
@@ -202,8 +163,8 @@ export class OuroborosSceneView {
     this.scene.tweens.add({
       targets: this.head,
       alpha: 1,
-      scaleX: this.headScaleX,
-      scaleY: this.headScaleY,
+      scaleX: 1,
+      scaleY: 1,
       delay: 600,
       duration: 500,
       ease: "Back.Out",
@@ -234,7 +195,7 @@ export class OuroborosSceneView {
 
     this.background.setAlpha(1).setScale(1).setPosition(0, 0);
     this.body.setAlpha(1).setScale(1).setPosition(0, 0);
-    this.head.setAlpha(1).setScale(this.headScaleX, this.headScaleY);
+    this.head.setAlpha(1).setScale(1);
 
     for (const view of this.enemies.values()) {
       this.scene.tweens.killTweensOf(view.container);
@@ -242,16 +203,35 @@ export class OuroborosSceneView {
     }
   }
 
-  /** Reapply the current level tint after a level or renderer refresh. */
+  /** 清除并重绘背景（世界尺寸或关卡变化后调用） */
   redrawBackground(): void {
-    this.background.setTint(this.bgColor);
+    this.background.clear();
+    this.drawBackground(this.bgColor);
   }
 
   destroy(): void {
     for (const view of this.enemies.values()) view.container.destroy(true);
     this.enemies.clear();
+    for (const view of this.bullets.values()) view.graphics.destroy(true);
+    this.bullets.clear();
     for (const view of this.powerUps.values()) view.container.destroy(true);
     this.powerUps.clear();
+  }
+
+  private drawBackground(color: number = COLORS.stage): void {
+    this.background.fillStyle(color, 1);
+    this.background.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.background.lineStyle(1, COLORS.stageLine, 0.1);
+
+    for (let x = 40; x < WORLD_WIDTH; x += 40) {
+      this.background.lineBetween(x, 0, x, WORLD_HEIGHT);
+    }
+    for (let y = 40; y < WORLD_HEIGHT; y += 40) {
+      this.background.lineBetween(0, y, WORLD_WIDTH, y);
+    }
+
+    this.background.lineStyle(1, COLORS.stageBorder, 0.2);
+    this.background.strokeRect(12, 12, WORLD_WIDTH - 24, WORLD_HEIGHT - 24);
   }
 
   private drawRing(game: GameState): void {
@@ -262,11 +242,7 @@ export class OuroborosSceneView {
     if (!first) return;
 
     this.ring.fillStyle(COLORS.bodyFlash, game.closureFlash * 0.2);
-    this.ring.lineStyle(
-      BODY_WIDTH + 4,
-      COLORS.bodyOutline,
-      game.closureFlash * 0.72,
-    );
+    this.ring.lineStyle(7, 0xfff5ca, game.closureFlash);
     this.ring.beginPath();
     this.ring.moveTo(first.x, first.y);
     for (let index = 1; index < game.lastRing.length; index += 1) {
@@ -276,27 +252,66 @@ export class OuroborosSceneView {
     this.ring.closePath();
     this.ring.fillPath();
     this.ring.strokePath();
-    this.ring.lineStyle(BODY_WIDTH, 0xfff5ca, game.closureFlash);
-    this.ring.strokePath();
   }
 
   private drawBody(game: GameState): void {
+    this.body.clear();
     if (game.trail.length < 2) return;
 
-    const tailEnd = Math.min(TAIL_END_INDEX, game.trail.length - 1);
-    const bodyStart = Math.max(0, tailEnd - BODY_TAIL_OVERLAP);
+    this.body.lineStyle(BODY_WIDTH + 3, COLORS.shadow, 0.23);
+    traceTrail(this.body, game.trail, 6, 7);
 
-    if (this.supportsRope) {
-      this.tailRope.setPoints(game.trail.slice(0, tailEnd + 1));
-      this.bodyRope.setPoints(game.trail.slice(bodyStart));
-      return;
+    this.body.lineStyle(
+      BODY_WIDTH,
+      game.closureFlash > 0 ? COLORS.bodyFlash : COLORS.body,
+      1,
+    );
+    traceTrail(this.body, game.trail);
+
+    this.body.lineStyle(5, COLORS.bodyHighlight, 0.22);
+    traceTrail(this.body, game.trail, -1, -2);
+
+    const tail = game.trail[0];
+    if (!tail) return;
+
+    this.body.fillStyle(COLORS.shadow, 0.18);
+    this.body.fillCircle(tail.x + 5, tail.y + 6, TAIL_RADIUS + 1);
+    this.body.fillStyle(COLORS.tail, 1);
+    this.body.fillCircle(tail.x, tail.y, TAIL_RADIUS);
+    this.body.fillStyle(COLORS.tailCore, 1);
+    this.body.fillCircle(tail.x, tail.y, 6);
+
+    // 被子弹命中时尾部红色闪烁
+    if (game.tailShrinkFlash > 0) {
+      const flashAlpha = Math.floor(game.tailShrinkFlash * 20) % 2 === 0 ? 0.8 : 0.2;
+      this.body.lineStyle(BODY_WIDTH + 4, 0xff3030, flashAlpha);
+
+      let accumulated = 0;
+      for (let i = 1; i < game.trail.length && accumulated < BULLET_HIT_LENGTH_PENALTY; i++) {
+        const prev = game.trail[i - 1];
+        const curr = game.trail[i];
+        if (!prev || !curr) continue;
+        const segLen = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+        this.body.beginPath();
+        this.body.moveTo(prev.x, prev.y);
+        this.body.lineTo(curr.x, curr.y);
+        this.body.strokePath();
+        accumulated += segLen;
+      }
     }
+  }
 
-    this.bodyFallback.clear();
-    this.bodyFallback.lineStyle(BODY_WIDTH + 5, COLORS.bodyOutline, 1);
-    traceTrail(this.bodyFallback, game.trail);
-    this.bodyFallback.lineStyle(BODY_WIDTH, COLORS.body, 1);
-    traceTrail(this.bodyFallback, game.trail);
+  private drawHead(): void {
+    this.head.fillStyle(COLORS.shadow, 0.22);
+    this.head.fillCircle(5, 6, HEAD_RADIUS);
+    this.head.fillStyle(COLORS.head, 1);
+    this.head.fillCircle(0, 0, HEAD_RADIUS);
+    this.head.fillStyle(COLORS.ink, 1);
+    this.head.fillCircle(7, -6, 2.5);
+    this.head.fillCircle(7, 6, 2.5);
+    this.head.lineStyle(2, COLORS.ink, 1);
+    this.head.lineBetween(13, 0, 22, -4);
+    this.head.lineBetween(13, 0, 22, 4);
   }
 
   private syncEnemies(game: GameState): void {
@@ -311,30 +326,57 @@ export class OuroborosSceneView {
     for (const enemy of game.enemies) {
       const view = this.enemies.get(enemy.id) ?? this.createEnemyView(enemy);
       const pulse = Math.sin(game.elapsed * 3.4 + enemy.phase) * 1.5;
-      const diameter =
-        (enemy.size + pulse) * ENEMY_VISUAL_DIAMETER_SCALE;
+      const size = enemy.size + pulse;
       const movementAngle = Math.atan2(enemy.velocityY, enemy.velocityX);
 
-      view.container
-        .setPosition(enemy.x, enemy.y)
-        .setRotation(enemy.kind === "stationary" ? 0 : movementAngle);
-      if (enemy.kind === "stationary") {
-        view.image.setDisplaySize(diameter, diameter);
-      } else if (enemy.kind === "wanderer") {
-        view.image.setDisplaySize(diameter * 1.2, diameter * 0.86);
-      } else {
-        view.image.setDisplaySize(diameter * 1.25, diameter * 0.82);
-      }
+      view.container.setPosition(enemy.x, enemy.y);
+      view.container.setRotation(
+        enemy.kind === "shooter" ? enemy.heading :
+        enemy.kind === "stationary" ? 0 :
+        movementAngle,
+      );
+      view.graphics.clear();
+      paintEnemyIcon({ graphics: view.graphics, enemy, size });
     }
   }
 
   private createEnemyView(enemy: Enemy): EnemyView {
     const container = this.scene.add.container(enemy.x, enemy.y).setDepth(2);
-    const image = this.scene.add.image(0, 0, enemyTexture(enemy));
-    container.add(image);
+    const graphics = this.scene.add.graphics();
+    container.add(graphics);
 
-    const view = { container, image };
+    const view = { container, graphics };
     this.enemies.set(enemy.id, view);
+    return view;
+  }
+
+  private syncBullets(game: GameState): void {
+    const liveIds = new Set(game.bullets.map((bullet) => bullet.id));
+    for (const [id, view] of this.bullets) {
+      if (!liveIds.has(id)) {
+        view.graphics.destroy(true);
+        this.bullets.delete(id);
+      }
+    }
+
+    for (const bullet of game.bullets) {
+      const view = this.bullets.get(bullet.id) ?? this.createBulletView(bullet);
+      view.graphics.clear();
+      // 绘制子弹：小圆形 + 拖尾
+      view.graphics.fillStyle(0xf4d872, 0.9);
+      view.graphics.fillCircle(bullet.x, bullet.y, bullet.radius);
+      // 拖尾
+      const tailX = bullet.x - bullet.velocityX * 0.03;
+      const tailY = bullet.y - bullet.velocityY * 0.03;
+      view.graphics.lineStyle(2, 0xff9e4a, 0.6);
+      view.graphics.lineBetween(bullet.x, bullet.y, tailX, tailY);
+    }
+  }
+
+  private createBulletView(bullet: Bullet): BulletView {
+    const graphics = this.scene.add.graphics().setDepth(2);
+    const view = { graphics };
+    this.bullets.set(bullet.id, view);
     return view;
   }
 
@@ -358,8 +400,18 @@ export class OuroborosSceneView {
         .setPosition(powerUp.x, powerUp.y)
         .setScale(pulse)
         .setAlpha(expiryAlpha);
-      const displayDiameter = (powerUp.radius + 6) * 2;
-      view.image.setDisplaySize(displayDiameter, displayDiameter);
+      view.graphics.clear();
+      view.graphics.fillStyle(COLORS.shadow, 0.18);
+      view.graphics.fillCircle(3, 4, powerUp.radius + 7);
+      view.graphics.fillStyle(0xfff9ec, 0.94);
+      view.graphics.fillCircle(0, 0, powerUp.radius + 6);
+      view.graphics.lineStyle(2, COLORS.ink, 0.72);
+      view.graphics.strokeCircle(0, 0, powerUp.radius + 6);
+      paintPowerUpIcon({
+        graphics: view.graphics,
+        powerUp,
+        size: powerUp.radius,
+      });
     }
   }
 
@@ -367,10 +419,10 @@ export class OuroborosSceneView {
     const container = this.scene.add
       .container(powerUp.x, powerUp.y)
       .setDepth(2.5);
-    const image = this.scene.add.image(0, 0, powerUpTexture(powerUp));
-    container.add(image);
+    const graphics = this.scene.add.graphics();
+    container.add(graphics);
 
-    const view = { container, image };
+    const view = { container, graphics };
     this.powerUps.set(powerUp.id, view);
     return view;
   }

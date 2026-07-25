@@ -14,7 +14,6 @@ export const POWER_UP_KINDS = [
   "heal",
   "stasis",
   "haste",
-  "resonance",
 ] as const satisfies readonly PowerUpKind[];
 
 export const POWER_UP_DEFINITIONS: Readonly<
@@ -50,14 +49,6 @@ export const POWER_UP_DEFINITIONS: Readonly<
     color: "#f6c94c",
     weight: 24,
     duration: 5,
-    radius: 12,
-  },
-  resonance: {
-    kind: "resonance",
-    label: "共鸣",
-    color: "#6ed6b5",
-    weight: 20,
-    duration: 8,
     radius: 12,
   },
 };

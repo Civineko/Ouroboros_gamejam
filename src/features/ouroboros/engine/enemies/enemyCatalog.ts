@@ -7,7 +7,7 @@ export interface EnemyDefinition {
   moves: boolean;
 }
 
-export const ENEMY_KINDS = ["stationary", "wanderer", "tracker"] as const;
+export const ENEMY_KINDS = ["stationary", "wanderer", "tracker", "shooter"] as const;
 
 export const ENEMY_DEFINITIONS: Readonly<Record<EnemyKind, EnemyDefinition>> = {
   stationary: {
@@ -27,6 +27,12 @@ export const ENEMY_DEFINITIONS: Readonly<Record<EnemyKind, EnemyDefinition>> = {
     color: "#8fd0c1",
     speedMultiplier: 1,
     moves: true,
+  },
+  shooter: {
+    kind: "shooter",
+    color: "#d4a0e7",
+    speedMultiplier: 0,
+    moves: false,
   },
 };
 

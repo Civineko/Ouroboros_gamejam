@@ -22,6 +22,7 @@ interface ToneOptions {
 }
 
 const MINIMUM_GAIN = 0.0001;
+const BGM_PATH = "/assets/ouroboros/audio/bgm_cosy_bossa.ogg";
 
 function createBrowserAudioContext(): AudioContext | null {
   const audioGlobal = globalThis as typeof globalThis & AudioContextGlobal;
@@ -44,12 +45,14 @@ export class OuroborosAudioController {
   private effectsOutput: GainNode | null = null;
   private musicNodes: OscillatorNode[] = [];
   private musicGraphNodes: AudioNode[] = [];
-  private musicVolume = 0.45;
+  private musicVolume = 0.05;
   private effectsVolume = 0.8;
   private musicRequested = false;
   private musicPaused = true;
   private resumePromise: Promise<void> | null = null;
   private pendingCues: AudioCue[] = [];
+  private bgmAudio: HTMLAudioElement | null = null;
+  private bgmLoaded = false;
 
   constructor(
     private readonly contextFactory: AudioContextFactory =
@@ -58,6 +61,7 @@ export class OuroborosAudioController {
 
   setMusicVolume(volume: number): void {
     this.musicVolume = clampVolume(volume, this.musicVolume);
+    if (this.bgmAudio) this.bgmAudio.volume = this.musicVolume;
     this.applyMusicGain(0.04);
   }
 
@@ -120,6 +124,9 @@ export class OuroborosAudioController {
   startMusic(): void {
     this.musicRequested = true;
     this.musicPaused = false;
+    this.ensureBgm();
+    this.bgmAudio?.play().catch(() => undefined);
+
     const context = this.ensureContext();
     if (!context) return;
 
@@ -127,50 +134,34 @@ export class OuroborosAudioController {
       this.unlock();
       return;
     }
-
-    this.ensureMusicVoices(context);
-    this.applyMusicGain(0.18);
   }
 
   pauseMusic(): void {
     this.musicPaused = true;
-    this.applyMusicGain(0.08);
+    this.bgmAudio?.pause();
   }
 
   resumeMusic(): void {
     if (!this.musicRequested) return;
     this.musicPaused = false;
+    this.ensureBgm();
+    this.bgmAudio?.play().catch(() => undefined);
+
     const context = this.ensureContext();
     if (!context) return;
     if (context.state !== "running") {
       this.unlock();
       return;
     }
-
-    this.ensureMusicVoices(context);
-    this.applyMusicGain(0.12);
   }
 
   stopMusic(): void {
     this.musicRequested = false;
     this.musicPaused = true;
-    this.applyMusicGain(0.08);
-
-    const nodes = this.musicNodes;
-    const graphNodes = this.musicGraphNodes;
-    this.musicNodes = [];
-    this.musicGraphNodes = [];
-    globalThis.setTimeout(() => {
-      for (const node of nodes) {
-        try {
-          node.stop();
-        } catch {
-          // A stopped oscillator cannot be stopped twice.
-        }
-        node.disconnect();
-      }
-      for (const node of graphNodes) node.disconnect();
-    }, 120);
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.bgmAudio.currentTime = 0;
+    }
   }
 
   play(cue: AudioCue): void {
@@ -232,9 +223,6 @@ export class OuroborosAudioController {
       case "powerup-haste":
         this.chime([520, 780, 1040], 0.03, 0.2, cueGain);
         break;
-      case "powerup-resonance":
-        this.chime([330, 495, 742], 0.055, 0.32, cueGain);
-        break;
       case "game-over":
         this.chime([330, 247, 165], 0.13, 0.48, cueGain);
         break;
@@ -245,6 +233,12 @@ export class OuroborosAudioController {
     this.stopMusic();
     this.pendingCues = [];
     this.resumePromise = null;
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.bgmAudio.src = "";
+      this.bgmAudio = null;
+      this.bgmLoaded = false;
+    }
     const context = this.context;
     const contextOwned = this.contextOwned;
     this.musicOutput?.disconnect();
@@ -257,6 +251,15 @@ export class OuroborosAudioController {
     if (contextOwned && context && context.state !== "closed") {
       void context.close().catch(() => undefined);
     }
+  }
+
+  private ensureBgm(): void {
+    if (this.bgmLoaded) return;
+    this.bgmLoaded = true;
+    if (typeof Audio === "undefined") return;
+    this.bgmAudio = new Audio(BGM_PATH);
+    this.bgmAudio.loop = true;
+    this.bgmAudio.volume = this.musicVolume;
   }
 
   private ensureContext(): AudioContext | null {

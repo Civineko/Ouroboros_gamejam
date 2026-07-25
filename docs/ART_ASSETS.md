@@ -2,7 +2,7 @@
 
 ## 用途与范围
 
-本文档是美工、音频、Vue UI、Phaser 表现开发与集成人员之间的交付协议。审计范围以当前已实现的全屏 UI、新手引导、三类敌人、五种增益、碰撞、闭环、暂停和结束状态为准，不包含 Boss 或其他尚未实现的玩法。
+本文档是美工、音频、Vue UI、Phaser 表现开发与集成人员之间的交付协议。审计范围以当前已实现的全屏 UI、新手引导、三类敌人、四种增益、碰撞、闭环、暂停和结束状态为准，不包含 Boss 或其他尚未实现的玩法。
 
 当前版本的美术大量使用 Phaser 程序绘制、Lucide 图标与 CSS 作为占位，音频使用 Web Audio 程序音作为离线占位。所有正式成品必须随 Windows `.exe` 和 Android `.apk` 离线打包；浏览器预览不是最终交付物。
 
@@ -24,16 +24,15 @@ public/assets/ouroboros/                       最终安装包内的运行时成
 ├── characters/snake/                         蛇头、蛇身、蛇尾
 ├── characters/enemies/                       三类敌人
 ├── environment/stage/                        场地
-├── items/powerups/                           五种增益道具
+├── items/powerups/                           四种增益道具
 ├── effects/                                  命中、闭环与增益状态反馈
 ├── ui/                                       品牌与应用图标
 │   ├── main_menu/                            主菜单标题 Logo
-│   ├── pause/                                暂停菜单面板
 │   └── font_dymon_shouxieti.otf              “圈一圈”标题商用字体
 └── audio/
     ├── music/                                BGM 与结束短曲
     ├── sfx/gameplay/                         受击、闭环、护盾
-    ├── sfx/powerups/                         五种增益拾取音
+    ├── sfx/powerups/                         四种增益拾取音
     └── ui/                                   开始、暂停、继续、重开反馈
 
 src/features/ouroboros/phaser/assets/
@@ -71,41 +70,38 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 | 优先级 | 状态 | 资源 | 交付路径 | 建议规格 | 运行时要求 | 当前占位 / 缺口 |
 | --- | --- | --- | --- | --- | --- | --- |
-| P0 | READY | 场地地砖 | `environment/stage/tex_stage_tile.webp` | `512x512` 无缝 WebP，<= 100KB | 平铺覆盖世界，低细节，不伪造碰撞边界 | `OuroborosSceneView` 已接入 `TileSprite` |
-| P0 | READY | 蛇头 | `characters/snake/spr_snake_head.png` | `128x72` 透明 PNG | 朝右、中心旋转，舌头不得超出画布 | `OuroborosSceneView` 已接入图片渲染 |
-| P0 | READY | 蛇身条带 | `characters/snake/tex_snake_body_strip.png` | `151x30` 透明开放端条带 | 主体视觉厚度对应 `22px` | `OuroborosSceneView` 已接入 Phaser Rope |
-| P0 | READY | 蛇尾 | `characters/snake/spr_snake_tail.png` | `100x30` 透明渐细条带 | 尾尖朝左、粗端连接蛇身 | `OuroborosSceneView` 已接入 Phaser Rope |
-| P0 | READY | 静态敌人 | `characters/enemies/spr_enemy_stationary.png` | `128x112` 透明 PNG | 方/盾类稳定剪影，不旋转 | 正式资源已接入 |
-| P0 | READY | 游荡敌人 | `characters/enemies/spr_enemy_wanderer.png` | `160x118` 透明 PNG | 朝右，风筝/漂移类剪影 | 正式资源已接入 |
-| P0 | READY | 追踪敌人 | `characters/enemies/spr_enemy_tracker.png` | `160x105` 透明 PNG | 朝右，箭头/眼类追踪剪影 | 正式资源已接入 |
-| P1 | READY | 护环道具 | `items/powerups/spr_powerup_shield.png` | 最长边 `96px` 透明 PNG | 盾形、浅蓝主色、中心锚点 | 正式资源已接入 |
-| P1 | READY | 回生道具 | `items/powerups/spr_powerup_heal.png` | 最长边 `96px` 透明 PNG | 十字形、珊瑚红主色、中心锚点 | 正式资源已接入 |
-| P1 | READY | 凝滞道具 | `items/powerups/spr_powerup_stasis.png` | 最长边 `96px` 透明 PNG | 雪花形、紫蓝主色、中心锚点 | 正式资源已接入 |
-| P1 | READY | 疾行道具 | `items/powerups/spr_powerup_haste.png` | 最长边 `96px` 透明 PNG | 闪电形、琥珀黄主色、中心锚点 | 正式资源已接入 |
-| P1 | READY | 共鸣道具 | `items/powerups/spr_powerup_resonance.png` | 最长边 `96px` 透明 PNG | 同心环形、青绿主色、中心锚点 | 正式资源已接入 |
+| P0 | TODO | 场地地砖 | `environment/stage/tex_stage_tile.webp` | `256x256` 无缝 WebP，<= 100KB | 平铺覆盖世界，低细节，不伪造碰撞边界 | `OuroborosSceneView.drawBackground` 网格 |
+| P0 | TODO | 蛇头 | `characters/snake/spr_snake_head.png` | `64x64` 透明 PNG | 朝右、中心旋转，舌头不得超出画布 | `OuroborosSceneView.drawHead` |
+| P0 | TODO | 蛇身条带 | `characters/snake/tex_snake_body_strip.png` | `64x32`，左右无缝 | 主体视觉厚度对应 `22px` | `OuroborosSceneView.drawBody` 线条 |
+| P0 | TODO | 蛇尾 | `characters/snake/spr_snake_tail.png` | `48x48` 透明 PNG | 中心锚点，视觉半径约 `13px` | `OuroborosSceneView.drawBody` 圆形 |
+| P0 | TODO | 静态敌人 | `characters/enemies/spr_enemy_stationary.png` | `64x64` 透明 PNG | 方/盾类稳定剪影，不旋转 | `placeholders/enemyIconPainters.ts` |
+| P0 | TODO | 游荡敌人 | `characters/enemies/spr_enemy_wanderer.png` | `64x64` 透明 PNG | 朝右，风筝/漂移类剪影 | `placeholders/enemyIconPainters.ts` |
+| P0 | TODO | 追踪敌人 | `characters/enemies/spr_enemy_tracker.png` | `64x64` 透明 PNG | 朝右，箭头/眼类追踪剪影 | `placeholders/enemyIconPainters.ts` |
+| P1 | TODO | 护环道具 | `items/powerups/spr_powerup_shield.png` | `48x48` 透明 PNG | 盾形、浅蓝主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | TODO | 回生道具 | `items/powerups/spr_powerup_heal.png` | `48x48` 透明 PNG | 十字形、珊瑚红主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | TODO | 凝滞道具 | `items/powerups/spr_powerup_stasis.png` | `48x48` 透明 PNG | 雪花形、紫蓝主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | TODO | 疾行道具 | `items/powerups/spr_powerup_haste.png` | `48x48` 透明 PNG | 闪电形、琥珀黄主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
 | P1 | TODO | 闭环净化粒子 | `effects/fx_capture_particle.png` | `32x32` 透明 PNG | 可着色、中心锚点；仅用于成功净化 | Phaser 多边形闪光 |
 | P1 | TODO | 命中特效 | `effects/sheet_hit_burst.png` | 单帧 `128x128`，6-8 帧横排 | `10-14fps`，首尾帧透明；敌人消失与蛇头受击共用，不改变命中时机 | 蛇头透明闪烁 |
-| P1 | TODO | 通用增益拾取特效 | `effects/sheet_powerup_collect.png` | 单帧 `64x64`，6 帧横排 | `12-16fps`，单色可着色，五种道具按定义颜色复用 | 当前仅让场上道具直接消失 |
-| P1 | TODO | 增益激活光环 | `effects/fx_buff_aura.png` | `96x96` 透明 PNG | 单色可着色；护环常驻，疾行/共鸣短暂强调；凝滞仍以敌人色调反馈 | HUD 有倒计时，场内缺少持续状态反馈 |
-| P1 | READY | 暂停菜单交互面板 | `ui/pause/panel_pause_controls.png` | `740x378` 透明 PNG，约 `264KB` | 仅作视觉皮肤；音乐/音效牌、滑杆和底部按钮均由真实 DOM 控件承载，碰撞与音量逻辑不进入图片 | `PauseMenu.vue` 已通过集中式 `uiArtCatalog.ts` 接入 |
-| P2 | READY | 主菜单“圈一圈”标题 Logo | `ui/main_menu/logo_main_menu.png` | 原图 `1280x894`；运行时裁透明留白后为 `1236x619` 透明 PNG | 替代原文字标题；保持完整笔画，在 Windows 横屏及 Android 横、竖屏按可用空间等比缩放 | `OuroborosStage.vue` 已通过 `uiArtCatalog.ts` 集中接入 |
+| P1 | TODO | 通用增益拾取特效 | `effects/sheet_powerup_collect.png` | 单帧 `64x64`，6 帧横排 | `12-16fps`，单色可着色，四种道具按定义颜色复用 | 当前仅让场上道具直接消失 |
+| P1 | TODO | 增益激活光环 | `effects/fx_buff_aura.png` | `96x96` 透明 PNG | 单色可着色；护环常驻，疾行短暂强调；凝滞仍以敌人色调反馈 | HUD 有倒计时，场内缺少持续状态反馈 |
+| P2 | READY | 主菜单“圈一圈”标题 Logo | `ui/main_menu/logo_main_menu.png` | 原图 `1280x894`；运行时裁透明留白后为 `1236x619` 透明 PNG | 保持完整笔画，在 Windows 横屏及 Android 横、竖屏按可用空间等比缩放 | `OuroborosStage.vue` 已通过 `uiArtCatalog.ts` 集中接入 |
 | P2 | TODO | 品牌标志 | `ui/brand_mark.svg` | 正方形 SVG | 适配浅色背景和高 DPI，轮廓清晰 | Lucide `CircleDotDashed` |
 | P2 | TODO | favicon | `ui/favicon.svg` | `64x64` SVG | Windows 窗口和浏览器 `16px` 下可辨识 | 当前临时衔尾蛇图标 |
 
 ### 增益状态复用规则
 
-- 场上道具图标和 Vue `PowerUpBar` 必须复用同一套五种图形，不再制作一套 HUD 图标。
+- 场上道具图标和 Vue `PowerUpBar` 必须复用同一套四种图形，不再制作一套 HUD 图标。
 - 护环需要明确的常驻光环；护盾抵消一次伤害后立即消失。
 - 回生是即时效果，只播放拾取特效和血量恢复反馈，不制作常驻状态图。
 - 凝滞通过移动敌人的统一降速色调/透明度表现，不需要额外逐敌人贴图。
-- 疾行与共鸣可复用 `fx_buff_aura.png` 的不同颜色和短暂缩放；倒计时仍由 Vue HUD 表示。
+- 疾行可复用 `fx_buff_aura.png` 的短暂缩放；倒计时仍由 Vue HUD 表示。
 - 护环抵消伤害时复用 `fx_buff_aura.png` 的破裂缩放与 `sheet_hit_burst.png` 的着色版本，不增加单独贴图。
 - 增益到期闪烁、场上道具脉冲、闭环范围和受击无敌闪烁继续由程序控制，不烘焙成多份图片。
 
 ### 不需要单独制作的美术
 
-- 暂停菜单已使用一张完整透明面板作为视觉皮肤，不再为音乐牌、滑轨、锁链和两个按钮重复制作 SVG；真实交互仍由 Vue DOM 控件提供。
-- 开始、重开和其他未定稿状态继续使用现有 Lucide 图标与 CSS 覆盖层，除非整体 UI 重新定稿，否则不制作重复 SVG。
+- 开始、暂停、继续、重开和结束状态继续使用现有 Lucide 图标与 CSS 覆盖层；除非整体 UI 重新定稿，否则不制作重复 SVG。
 - 点击/拖动转向反馈使用 Phaser 圆环、缩放和淡出绘制，不新增透明 PNG。
 - 教学完成复用闭环净化反馈，空环复用程序绘制的闭环闪光，不为同一动作制作第二套图片。
 - 场上道具脉冲、到期闪烁、蛇头无敌闪烁和敌人碰撞分离均由程序控制。
@@ -134,7 +130,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 | 优先级 | 状态 | 资源 | 交付路径 | 时长 / 循环 | 事件触发点 | 建议响度 | 当前占位 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | TODO | 游戏 BGM | `audio/music/bgm_gameplay_loop.ogg` | `45-75s`，无缝循环 | `startRound()` 后启动；暂停时淡出，继续时恢复且不叠加实例 | `-18 LUFS-I` | 双声部程序氛围音 |
+| P0 | READY | 游戏 BGM | `audio/bgm_cosy_bossa.ogg` | OGG，约 `2MB`，循环播放 | `startRound()` 后启动；暂停时停止，继续时恢复且不叠加实例 | 运行时默认音乐音量 `5%` | `OuroborosAudioController` 已接入 |
 | P0 | TODO | 通用按钮点击 | `audio/ui/ui_click.ogg` | `0.06-0.18s`，不循环 | 所有可点击按钮 | `-22` 至 `-20 LUFS` | 程序短音 |
 | P0 | TODO | UI 开始 | `audio/ui/ui_start.ogg` | `0.12-0.35s`，不循环 | 首次开始；同时解锁 AudioContext | `-20` 至 `-18 LUFS` | 程序上行和弦 |
 | P0 | TODO | UI 暂停 | `audio/ui/ui_pause.ogg` | `0.12-0.30s`，不循环 | `togglePause()` 切换到暂停时 | `-20` 至 `-18 LUFS` | 程序下行音 |
@@ -145,16 +141,15 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 | P0 | TODO | 游戏结束短曲 | `audio/music/stinger_game_over.ogg` | `1.20-2.20s`，不循环 | `GameEvent: game-over`；致命受击不再单独播放 `sfx_player_hit` | `-16 LUFS-I` | 程序下行和弦 |
 | P1 | TODO | 空环反馈 | `audio/sfx/gameplay/sfx_loop_empty.ogg` | `0.20-0.50s`，不循环 | `GameEvent: empty-loop` | `-20` 至 `-18 LUFS` | 程序短音 |
 | P1 | TODO | 护环抵消 | `audio/sfx/gameplay/sfx_shield_block.ogg` | `0.25-0.60s`，不循环 | `GameEvent: shield-blocked` | `-16` 至 `-14 LUFS` | 程序和弦与噪声 |
-| P1 | TODO | 五种增益拾取音 | `audio/sfx/powerups/sfx_powerup_{shield,heal,stasis,haste,resonance}.ogg` | 各 `0.25-0.65s`，不循环 | `GameEvent: power-up-collected`，按 `kind` 选择 | `-18` 至 `-16 LUFS` | 五种程序和弦 |
+| P1 | TODO | 四种增益拾取音 | `audio/sfx/powerups/sfx_powerup_{shield,heal,stasis,haste}.ogg` | 各 `0.25-0.65s`，不循环 | `GameEvent: power-up-collected`，按 `kind` 选择 | `-18` 至 `-16 LUFS` | 四种程序和弦 |
 | P2 | TODO | BGM 备用循环 | `audio/music/bgm_gameplay_loop_02.ogg` | `45-75s`，无缝循环 | 仅用于降低长局重复感；与主循环同响度、同调性 | `-18 LUFS-I` | 无 |
 
-五种增益拾取音的完整文件名为：
+四种增益拾取音的完整文件名为：
 
 - `sfx_powerup_shield.ogg`
 - `sfx_powerup_heal.ogg`
 - `sfx_powerup_stasis.ogg`
 - `sfx_powerup_haste.ogg`
-- `sfx_powerup_resonance.ogg`
 
 ### 不需要制作的音频
 
@@ -196,27 +191,25 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 ### P0 核心玩法
 
-- [x] 输出场地背景，并确认蛇和三类敌人在其上保持足够明度对比。
-- [x] 输出蛇头、无缝蛇身条带、蛇尾三件套。
-- [x] 输出静态、游荡、追踪三类敌人；灰度剪影也必须可区分。
-- [ ] 交付主 BGM、UI 确认/暂停、受击、闭环净化和结束短曲。
+- [ ] 输出场地背景，并确认蛇和三类敌人在其上保持足够明度对比。
+- [ ] 输出蛇头、无缝蛇身条带、蛇尾三件套。
+- [ ] 输出静态、游荡、追踪三类敌人；灰度剪影也必须可区分。
+- [ ] 主 BGM 已交付；继续交付 UI 确认/暂停、受击、闭环净化和结束短曲。
 - [x] 开发建立集中式音频目录与控制器；正式 OGG 仍按资源表逐项替换。
-- [x] 开发把 P0 美术接入 `assetCatalog.ts`，并清理已替换的程序占位。
 - [ ] 在 Windows `.exe` 和 Android `.apk` 中完成断网核心流程验收。
 
 ### P1 状态反馈
 
-- [x] 输出五种增益图标；在 `24px` 显示尺寸下仍能凭剪影区分，并同时供场上道具与 HUD 使用。
-- [x] 提取并接入暂停菜单透明面板，保留真实滑杆、按钮、键盘焦点与 Android `44px` 触控热区。
+- [ ] 输出四种增益图标；在 `24px` 显示尺寸下仍能凭剪影区分，并同时供场上道具与 HUD 使用。
 - [ ] 输出闭环粒子、命中特效、通用增益拾取和增益光环。
 - [ ] 开发用 Phaser 补齐触控转向反馈，并继续复用现有 Lucide 状态图标。
-- [ ] 交付空环、护环抵消和五种增益拾取音。
+- [ ] 交付空环、护环抵消和四种增益拾取音。
 - [ ] 验证触控反馈不遮住蛇头，增益光环不改变碰撞体积，特效不遮挡闭环边界。
 - [ ] 验证暂停、后台、恢复和重开不会重复创建 BGM 实例。
 
 ### P2 品牌与重复体验
 
-- [x] 将已交付的主菜单“圈一圈”标题 Logo 放入 `ui/main_menu/logo_main_menu.png`，经 `uiArtCatalog.ts` 接入并替换文字标题；已在 Windows 横屏及 Android 横、竖屏确认适当放大、等比缩放且无遮挡、裁切或溢出。
+- [x] 主菜单“圈一圈”标题 Logo 已集中接入，并完成横、竖屏等比缩放检查。
 - [ ] 替换品牌标志与临时 favicon。
 - [ ] 评估生命、净化等 HUD 图标是否继续使用 Lucide；只有确需定制时再按 `ui/icon_*.svg` 登记，避免装饰性膨胀。
 - [ ] 主循环完成并验证后，再决定是否制作第二条同调性 BGM。
@@ -233,7 +226,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 2. 开发检查尺寸、透明、锚点、响度、循环点和文件大小。美术登记到 `assetCatalog.ts`；音频登记到待新增的 `audioCatalog.ts`。
 3. 只有文件存在且目标平台加载成功后，才能把本表状态从 `TODO` 改成 `READY`、把 `assetCatalog.ts` 的对应值改成 `"ready"`，并勾选对应 TODO。
 4. 表现层使用正式 texture/audio key 替换占位；图片、特效和声音不得改变碰撞、增益时长、敌人移动或事件顺序。
-5. 单项替换时只删除对应 painter 分支。三类敌人全部接入后再删除 `enemyIconPainters.ts`；五种增益全部接入后再删除 `powerUpIconPainters.ts`。
+5. 单项替换时只删除对应 painter 分支。三类敌人全部接入后再删除 `enemyIconPainters.ts`；四种增益全部接入后再删除 `powerUpIconPainters.ts`。
 6. `drawBackground`、`drawHead`、`drawBody` 中的程序占位只有在对应正式资源全部可用且不再作为加载失败回退时才删除。
 7. Lucide 状态图标在三个正式 SVG 都接入后删除对应 import；仍被按钮或 HUD 使用的 Lucide 图标不得误删。
 8. 目录内第一个真实资源提交后删除该目录的 `.gitkeep`；不要保留无引用的临时图片、测试音频或重复编码格式。
@@ -245,8 +238,8 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 - [ ] 文件名、大小写、路径、尺寸与本文档一致，安装包内无远程依赖。
 - [ ] PNG/WebP 无多余白边、黑底或错误预乘透明；SVG 在 Windows 和 Android 均正常显示。
 - [ ] 移动角色朝右且旋转中心位于主体中心；图片替换后碰撞体积没有变化。
-- [ ] 三类敌人与五种增益在 `24px` 和灰度模式下仍能区分。
+- [ ] 三类敌人与四种增益在 `24px` 和灰度模式下仍能区分。
 - [ ] 背景不伪造碰撞墙体，特效和触控反馈不遮挡蛇头、敌人或闭环边界。
 - [ ] 音频无削波、爆音、循环断点或重复实例；暂停、后台和恢复行为正确。
 - [ ] `.exe` 与 `.apk` 在断网状态可进入游戏并完成开始、教学、暂停、受击、闭环、增益、结束和重开。
-- [x] 正式资源接入后，相关程序占位、临时图标、`.gitkeep` 与无引用文件已按规则清理。
+- [ ] 正式资源接入后，相关程序占位、临时图标、`.gitkeep` 与无引用文件已按规则清理。
