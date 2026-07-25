@@ -1,6 +1,6 @@
 export interface AudioPreferences {
-  masterVolume: number;
-  muted: boolean;
+  musicVolume: number;
+  effectsVolume: number;
 }
 
 interface AudioPreferencesStorage {
@@ -13,15 +13,12 @@ export const AUDIO_PREFERENCES_STORAGE_KEY =
 
 export const DEFAULT_AUDIO_PREFERENCES: Readonly<AudioPreferences> =
   Object.freeze({
-    masterVolume: 0.8,
-    muted: false,
+    musicVolume: 0.45,
+    effectsVolume: 0.8,
   });
 
-export function clampMasterVolume(value: number): number {
-  if (!Number.isFinite(value)) {
-    return DEFAULT_AUDIO_PREFERENCES.masterVolume;
-  }
-
+export function clampVolume(value: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
   return Math.min(1, Math.max(0, value));
 }
 
@@ -35,25 +32,38 @@ function normalizePreferences(value: unknown): AudioPreferences {
   }
 
   const candidate = value as Record<string, unknown>;
+  const legacyVolume =
+    typeof candidate.masterVolume === "number"
+      ? clampVolume(
+          candidate.masterVolume,
+          DEFAULT_AUDIO_PREFERENCES.effectsVolume,
+        )
+      : undefined;
+  const legacyMuted = candidate.muted === true;
+  const musicVolume =
+    typeof candidate.musicVolume === "number"
+      ? clampVolume(
+          candidate.musicVolume,
+          DEFAULT_AUDIO_PREFERENCES.musicVolume,
+        )
+      : (legacyVolume ?? DEFAULT_AUDIO_PREFERENCES.musicVolume);
+  const effectsVolume =
+    typeof candidate.effectsVolume === "number"
+      ? clampVolume(
+          candidate.effectsVolume,
+          DEFAULT_AUDIO_PREFERENCES.effectsVolume,
+        )
+      : (legacyVolume ?? DEFAULT_AUDIO_PREFERENCES.effectsVolume);
 
-  return {
-    masterVolume:
-      typeof candidate.masterVolume === "number"
-        ? clampMasterVolume(candidate.masterVolume)
-        : DEFAULT_AUDIO_PREFERENCES.masterVolume,
-    muted:
-      typeof candidate.muted === "boolean"
-        ? candidate.muted
-        : DEFAULT_AUDIO_PREFERENCES.muted,
-  };
+  return legacyMuted
+    ? { musicVolume: 0, effectsVolume: 0 }
+    : { musicVolume, effectsVolume };
 }
 
 function resolveStorage(
   storage?: AudioPreferencesStorage,
 ): AudioPreferencesStorage | undefined {
-  if (storage !== undefined) {
-    return storage;
-  }
+  if (storage !== undefined) return storage;
 
   try {
     return globalThis.localStorage;

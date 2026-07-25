@@ -18,8 +18,8 @@ defineProps<{
   started: boolean;
   paused: boolean;
   gameOver: boolean;
-  masterVolume: number;
-  muted: boolean;
+  musicVolume: number;
+  effectsVolume: number;
   hud: HudSnapshot;
 }>();
 
@@ -28,8 +28,10 @@ const emit = defineEmits<{
   pause: [];
   restart: [];
   end: [];
-  volumeChange: [volume: number];
-  toggleMute: [];
+  musicVolumeChange: [volume: number];
+  effectsVolumeChange: [volume: number];
+  toggleMusicMute: [];
+  toggleEffectsMute: [];
 }>();
 
 const container = useTemplateRef<HTMLElement>("container");
@@ -42,12 +44,12 @@ defineExpose<OuroborosStageExpose>({
 <template>
   <div class="stage-shell">
     <div class="canvas-frame">
-      <div ref="container" class="phaser-host" aria-label="衔尾蛇游戏区域" />
+      <div ref="container" class="phaser-host" aria-label="圈一圈游戏区域" />
 
       <Transition name="intro-cover">
         <div v-if="!started" class="stage-cover stage-cover-intro">
           <div class="intro-brand">
-            <h1>首尾相接</h1>
+            <h1>圈一圈</h1>
             <button type="button" class="primary-command" @click="emit('start')">
               <Play :size="17" fill="currentColor" />
               开始游戏
@@ -61,12 +63,14 @@ defineExpose<OuroborosStageExpose>({
         class="stage-cover stage-cover-dark stage-cover-dialog"
       >
         <PauseMenu
-          :master-volume="masterVolume"
-          :muted="muted"
+          :music-volume="musicVolume"
+          :effects-volume="effectsVolume"
           @resume="emit('pause')"
           @end="emit('end')"
-          @volume-change="emit('volumeChange', $event)"
-          @toggle-mute="emit('toggleMute')"
+          @music-volume-change="emit('musicVolumeChange', $event)"
+          @effects-volume-change="emit('effectsVolumeChange', $event)"
+          @toggle-music-mute="emit('toggleMusicMute')"
+          @toggle-effects-mute="emit('toggleEffectsMute')"
         />
       </div>
 
@@ -188,10 +192,9 @@ defineExpose<OuroborosStageExpose>({
 .stage-cover h1 {
   margin: 0;
   color: #fffdf7;
-  font-family:
-    "Arial Black", "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: 58px;
-  font-weight: 900;
+  font-family: "Dymon ShouXieTi", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 64px;
+  font-weight: 400;
   line-height: 1;
   letter-spacing: 0;
   text-shadow:

@@ -8,24 +8,37 @@ import { useOuroborosGame } from "./composables/useOuroborosGame";
 
 const stage = useTemplateRef<OuroborosStageExpose>("stage");
 const game = useOuroborosGame(() => stage.value?.getContainer() ?? null);
+
+function handleUiClick(event: MouseEvent): void {
+  const target = event.target;
+  if (target instanceof Element && target.closest("button")) {
+    game.playUiClick();
+  }
+}
 </script>
 
 <template>
-  <main class="ouroboros-app">
+  <main
+    class="ouroboros-app"
+    @pointerdown.capture="game.unlockAudio"
+    @click.capture="handleUiClick"
+  >
     <OuroborosStage
       ref="stage"
       :started="game.started.value"
       :paused="game.paused.value"
       :game-over="game.gameOver.value"
-      :master-volume="game.masterVolume.value"
-      :muted="game.muted.value"
+      :music-volume="game.musicVolume.value"
+      :effects-volume="game.effectsVolume.value"
       :hud="game.hud.value"
       @start="game.start"
       @pause="game.togglePause"
       @restart="game.start"
       @end="game.end"
-      @volume-change="game.setMasterVolume"
-      @toggle-mute="game.toggleMute"
+      @music-volume-change="game.setMusicVolume"
+      @effects-volume-change="game.setEffectsVolume"
+      @toggle-music-mute="game.toggleMusicMute"
+      @toggle-effects-mute="game.toggleEffectsMute"
     />
 
     <div

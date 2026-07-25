@@ -4,7 +4,7 @@
 
 本文档是美工、音频、Vue UI、Phaser 表现开发与集成人员之间的交付协议。审计范围以当前已实现的全屏 UI、新手引导、三类敌人、五种增益、碰撞、闭环、暂停和结束状态为准，不包含 Boss 或其他尚未实现的玩法。
 
-当前版本的美术大量使用 Phaser 程序绘制、Lucide 图标与 CSS 作为占位，音频系统尚未接入。所有成品必须随 Windows `.exe` 和 Android `.apk` 离线打包；浏览器预览不是最终交付物。
+当前版本的美术大量使用 Phaser 程序绘制、Lucide 图标与 CSS 作为占位，音频使用 Web Audio 程序音作为离线占位。所有正式成品必须随 Windows `.exe` 和 Android `.apk` 离线打包；浏览器预览不是最终交付物。
 
 ### 优先级与状态
 
@@ -27,6 +27,7 @@ public/assets/ouroboros/                       最终安装包内的运行时成
 ├── items/powerups/                           五种增益道具
 ├── effects/                                  命中、闭环与增益状态反馈
 ├── ui/                                       品牌与应用图标
+│   └── font_dymon_shouxieti.otf              “圈一圈”标题商用字体
 └── audio/
     ├── music/                                BGM 与结束短曲
     ├── sfx/gameplay/                         受击、闭环、护盾
@@ -38,8 +39,8 @@ src/features/ouroboros/phaser/assets/
 ├── preloadOuroborosArt.ts                    只预加载 READY 美术
 └── placeholders/                             尚未替换的程序绘制占位
 
-src/features/ouroboros/phaser/audio/           音频接入时新增，当前为 TODO
-├── audioCatalog.ts                           key、路径、分类、音量与循环配置
+src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
+├── audioCatalog.ts                           cue、分类、音量与占位状态
 └── OuroborosAudioController.ts               解锁、播放、暂停与生命周期管理
 ```
 
@@ -124,19 +125,22 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 
 ## 音频资源清单
 
-表中路径均相对于 `public/assets/ouroboros/`；当前所有音频均为 `TODO`，运行时表现是无声。
+表中路径均相对于 `public/assets/ouroboros/`；当前所有正式音频均为 `TODO`，运行时先使用无需外部文件的 Web Audio 程序音。
 
 | 优先级 | 状态 | 资源 | 交付路径 | 时长 / 循环 | 事件触发点 | 建议响度 | 当前占位 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | TODO | 游戏 BGM | `audio/music/bgm_gameplay_loop.ogg` | `45-75s`，无缝循环 | `startRound()` 后启动；暂停时暂停，继续时从原位置恢复 | `-18 LUFS-I` | 无声 |
-| P0 | TODO | UI 确认 | `audio/ui/ui_confirm.ogg` | `0.12-0.30s`，不循环 | 开始、继续、重新开始按钮；首次点击同时解锁 AudioContext | `-20` 至 `-18 LUFS` | 无声 |
-| P0 | TODO | UI 暂停 | `audio/ui/ui_pause.ogg` | `0.12-0.30s`，不循环 | `togglePause()` 切换到暂停时 | `-20` 至 `-18 LUFS` | 无声 |
-| P0 | TODO | 蛇头受击 | `audio/sfx/gameplay/sfx_player_hit.ogg` | `0.20-0.50s`，不循环 | `GameEvent: hit` 且 `lives > 0` | `-16` 至 `-14 LUFS` | 无声 |
-| P0 | TODO | 闭环净化 | `audio/sfx/gameplay/sfx_loop_capture.ogg` | `0.35-0.80s`，不循环 | `GameEvent: capture`；同一帧只播放一次，不按敌人数叠声 | `-16` 至 `-14 LUFS` | 无声 |
-| P0 | TODO | 游戏结束短曲 | `audio/music/stinger_game_over.ogg` | `1.20-2.20s`，不循环 | `GameEvent: game-over`；致命受击不再单独播放 `sfx_player_hit` | `-16 LUFS-I` | 无声 |
-| P1 | TODO | 空环反馈 | `audio/sfx/gameplay/sfx_loop_empty.ogg` | `0.20-0.50s`，不循环 | `GameEvent: empty-loop` | `-20` 至 `-18 LUFS` | 无声 |
-| P1 | TODO | 护环抵消 | `audio/sfx/gameplay/sfx_shield_block.ogg` | `0.25-0.60s`，不循环 | `GameEvent: shield-blocked` | `-16` 至 `-14 LUFS` | 无声 |
-| P1 | TODO | 五种增益拾取音 | `audio/sfx/powerups/sfx_powerup_{shield,heal,stasis,haste,resonance}.ogg` | 各 `0.25-0.65s`，不循环 | `GameEvent: power-up-collected`，按 `kind` 选择 | `-18` 至 `-16 LUFS` | 无声 |
+| P0 | TODO | 游戏 BGM | `audio/music/bgm_gameplay_loop.ogg` | `45-75s`，无缝循环 | `startRound()` 后启动；暂停时淡出，继续时恢复且不叠加实例 | `-18 LUFS-I` | 双声部程序氛围音 |
+| P0 | TODO | 通用按钮点击 | `audio/ui/ui_click.ogg` | `0.06-0.18s`，不循环 | 所有可点击按钮 | `-22` 至 `-20 LUFS` | 程序短音 |
+| P0 | TODO | UI 开始 | `audio/ui/ui_start.ogg` | `0.12-0.35s`，不循环 | 首次开始；同时解锁 AudioContext | `-20` 至 `-18 LUFS` | 程序上行和弦 |
+| P0 | TODO | UI 暂停 | `audio/ui/ui_pause.ogg` | `0.12-0.30s`，不循环 | `togglePause()` 切换到暂停时 | `-20` 至 `-18 LUFS` | 程序下行音 |
+| P0 | TODO | UI 继续 | `audio/ui/ui_resume.ogg` | `0.12-0.30s`，不循环 | `togglePause()` 切换到继续时 | `-20` 至 `-18 LUFS` | 程序上行音 |
+| P0 | TODO | UI 重开 | `audio/ui/ui_restart.ogg` | `0.12-0.35s`，不循环 | 游戏结束后重新开始 | `-20` 至 `-18 LUFS` | 程序上行和弦 |
+| P0 | TODO | 蛇头受击 | `audio/sfx/gameplay/sfx_player_hit.ogg` | `0.20-0.50s`，不循环 | `GameEvent: hit` 且 `lives > 0` | `-16` 至 `-14 LUFS` | 程序噪声与下坠音 |
+| P0 | TODO | 闭环净化 | `audio/sfx/gameplay/sfx_loop_capture.ogg` | `0.35-0.80s`，不循环 | `GameEvent: capture`；同一帧只播放一次，不按敌人数叠声 | `-16` 至 `-14 LUFS` | 程序上行和弦 |
+| P0 | TODO | 游戏结束短曲 | `audio/music/stinger_game_over.ogg` | `1.20-2.20s`，不循环 | `GameEvent: game-over`；致命受击不再单独播放 `sfx_player_hit` | `-16 LUFS-I` | 程序下行和弦 |
+| P1 | TODO | 空环反馈 | `audio/sfx/gameplay/sfx_loop_empty.ogg` | `0.20-0.50s`，不循环 | `GameEvent: empty-loop` | `-20` 至 `-18 LUFS` | 程序短音 |
+| P1 | TODO | 护环抵消 | `audio/sfx/gameplay/sfx_shield_block.ogg` | `0.25-0.60s`，不循环 | `GameEvent: shield-blocked` | `-16` 至 `-14 LUFS` | 程序和弦与噪声 |
+| P1 | TODO | 五种增益拾取音 | `audio/sfx/powerups/sfx_powerup_{shield,heal,stasis,haste,resonance}.ogg` | 各 `0.25-0.65s`，不循环 | `GameEvent: power-up-collected`，按 `kind` 选择 | `-18` 至 `-16 LUFS` | 五种程序和弦 |
 | P2 | TODO | BGM 备用循环 | `audio/music/bgm_gameplay_loop_02.ogg` | `45-75s`，无缝循环 | 仅用于降低长局重复感；与主循环同响度、同调性 | `-18 LUFS-I` | 无 |
 
 五种增益拾取音的完整文件名为：
@@ -160,9 +164,10 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 
 | 现有入口 | 表现行为 |
 | --- | --- |
-| `startRound()` | 在用户点击/触摸后解锁音频，播放 `ui_confirm`，启动或重置 BGM。 |
+| 任意按钮点击 | 播放低音量 `ui_click`；首次开始点击同时解锁 AudioContext。 |
+| `startRound()` | 首次开始播放 `ui_start`，重开播放 `ui_restart`，并启动或重置 BGM。 |
 | `togglePause()` -> 暂停 | 播放 `ui_pause`，暂停 BGM 与尚未结束的非必要 SFX。 |
-| `togglePause()` -> 继续 | 播放 `ui_confirm`，从原播放位置恢复 BGM，不新建第二个循环实例。 |
+| `togglePause()` -> 继续 | 播放 `ui_resume`，恢复 BGM，不新建第二个循环实例。 |
 | `GameEvent: hit` | 非致命时播放受击音；致命时交给 `game-over` 短曲，避免双重峰值。 |
 | `GameEvent: capture` | 播放一次净化音；首次教学闭环复用同一资源，不额外发明教学音。 |
 | `GameEvent: empty-loop` | 播放低优先级空环音，不遮盖受击和结束反馈。 |
@@ -190,7 +195,7 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 - [ ] 输出蛇头、无缝蛇身条带、蛇尾三件套。
 - [ ] 输出静态、游荡、追踪三类敌人；灰度剪影也必须可区分。
 - [ ] 交付主 BGM、UI 确认/暂停、受击、闭环净化和结束短曲。
-- [ ] 开发把 P0 美术接入 `assetCatalog.ts`，并建立集中式音频目录与控制器。
+- [x] 开发建立集中式音频目录与控制器；正式 OGG 仍按资源表逐项替换。
 - [ ] 在 Windows `.exe` 和 Android `.apk` 中完成断网核心流程验收。
 
 ### P1 状态反馈
