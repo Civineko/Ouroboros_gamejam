@@ -40,6 +40,9 @@ export function createOuroborosRuntime(
       antialias: true,
       roundPixels: false,
     },
+    audio: {
+      disableWebAudio: true,
+    },
   });
 
   return { game, scene };

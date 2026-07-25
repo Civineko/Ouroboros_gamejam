@@ -49,6 +49,57 @@ export interface Bullet extends Point {
   shooterId: number;
 }
 
+export type BossPhase = 1 | 2 | 3;
+export type BossAction =
+  | "appearing"
+  | "stalking"
+  | "telegraphing"
+  | "charging"
+  | "recovering";
+
+export interface BossCore extends Point {
+  radius: number;
+  exposed: boolean;
+  cooldown: number;
+  orbitAngle: number;
+}
+
+export interface BossHazard extends Point {
+  id: number;
+  radius: number;
+  ttl: number;
+}
+
+export interface BossState extends Point {
+  kind: "devourer";
+  name: string;
+  radius: number;
+  armor: number;
+  maxArmor: number;
+  phase: BossPhase;
+  action: BossAction;
+  actionClock: number;
+  heading: number;
+  target: Point;
+  velocityX: number;
+  velocityY: number;
+  core: BossCore;
+  hazards: BossHazard[];
+  nextHazardId: number;
+  hazardClock: number;
+  summonClock: number;
+  absorbedEnemies: Point[];
+  phaseFlash: number;
+  hitFlash: number;
+}
+
+export interface BossDefeatEffect extends Point {
+  name: string;
+  reward: number;
+  remaining: number;
+  duration: number;
+}
+
 export interface GameState {
   trail: Point[];
   angle: number;
@@ -73,6 +124,9 @@ export interface GameState {
   shieldCharges: number;
   powerUpSpawnClock: number;
   nextPowerUpId: number;
+  boss: BossState | null;
+  bossDefeated: boolean;
+  bossDefeatEffect: BossDefeatEffect | null;
   /** 当前关卡（基于时间推进） */
   level: number;
   /** 全局速度倍率，影响一切速度 */
@@ -104,6 +158,23 @@ export interface HudSnapshot {
   nextGrowth: number;
   message: string;
   buffs: readonly BuffSnapshot[];
+  boss: BossSnapshot | null;
+  bossDefeat: BossDefeatSnapshot | null;
+}
+
+export interface BossSnapshot {
+  name: string;
+  armor: number;
+  maxArmor: number;
+  phase: BossPhase;
+  coreExposed: boolean;
+  action: BossAction;
+}
+
+export interface BossDefeatSnapshot {
+  name: string;
+  reward: number;
+  remaining: number;
 }
 
 export interface CollisionContact {
@@ -137,7 +208,11 @@ export type GameEvent =
   | { type: "power-up-collected"; kind: PowerUpKind }
   | { type: "shield-blocked" }
   | { type: "level-up"; level: number }
-  | { type: "bullet-hit" };
+  | { type: "bullet-hit" }
+  | { type: "boss-spawned"; name: string; armor: number }
+  | { type: "boss-charge" }
+  | { type: "boss-hit"; damage: number; armor: number }
+  | { type: "boss-defeated"; name: string; reward: number };
 
 export type CardinalDirection = "up" | "down" | "left" | "right";
 

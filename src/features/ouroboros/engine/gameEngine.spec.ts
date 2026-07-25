@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOSS_SCORE_THRESHOLD,
   BODY_WIDTH,
   INITIAL_BODY_LENGTH,
   INITIAL_BODY_POINTS,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./config";
+import { DEVOURER_DEFEAT_EFFECT_SECONDS } from "./bosses/bossCatalog";
+import { createDevourerBoss } from "./bosses/bossSystem";
 import {
   createEnemy,
   createGameState,
@@ -57,6 +60,11 @@ describe("game engine", () => {
     });
     expect(game.tutorialComplete).toBe(false);
     expect(game.tutorialAutoSteer).toBe(true);
+    expect(game.boss).toBeNull();
+    expect(game.bossDefeated).toBe(false);
+    expect(game.bossDefeatEffect).toBeNull();
+    expect(hud.boss).toBeNull();
+    expect(hud.bossDefeat).toBeNull();
     expect(hud).toMatchObject({
       kills: 0,
       lives: 3,
@@ -537,5 +545,147 @@ describe("game engine", () => {
       { type: "empty-loop" },
     ]);
     expect(game.message).toBe("形成了空环，没有敌人被圈住");
+  });
+
+  it("summons the boss when a capture reaches the score threshold", () => {
+    const game = createGameState(fixedRandom);
+    game.tutorialComplete = true;
+    game.kills = BOSS_SCORE_THRESHOLD - 1;
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 400 + Math.cos(angle) * 100,
+        y: 300 + Math.sin(angle) * 100,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.enemies = [
+      { ...createEnemy(20, 0, fixedRandom), x: 380, y: 300 },
+      { ...createEnemy(21, 0, fixedRandom), x: 420, y: 300 },
+      { ...createEnemy(22, 0, fixedRandom), x: 800, y: 600 },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(game.kills).toBe(BOSS_SCORE_THRESHOLD + 1);
+    expect(game.boss).not.toBeNull();
+    expect(game.boss?.action).toBe("appearing");
+    expect(game.boss?.absorbedEnemies).toHaveLength(1);
+    expect(game.enemies).toEqual([]);
+    expect(events).toContainEqual({
+      type: "boss-spawned",
+      name: "噬环者",
+      armor: 6,
+    });
+  });
+
+  it("damages the boss core with a closed ring", () => {
+    const game = createGameState(fixedRandom);
+    game.tutorialComplete = true;
+    game.enemies = [];
+    game.boss = createDevourerBoss({ x: 720, y: 450 });
+    game.boss.x = 400;
+    game.boss.y = 300;
+    game.boss.core.orbitAngle = 0;
+    game.boss.action = "stalking";
+    game.boss.core.exposed = true;
+    game.boss.core.cooldown = 0;
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 518 + Math.cos(angle) * 45,
+        y: 300 + Math.sin(angle) * 45,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(game.boss?.armor).toBe(5);
+    expect(game.boss?.core.exposed).toBe(false);
+    expect(events).toContainEqual({ type: "boss-hit", damage: 1, armor: 5 });
+    expect(events).not.toContainEqual({ type: "empty-loop" });
+  });
+
+  it("emits one charge event when the boss enters its dash", () => {
+    const game = createGameState(fixedRandom);
+    const head = game.trail.at(-1);
+    expect(head).toBeDefined();
+    if (!head) return;
+
+    game.tutorialComplete = true;
+    game.kills = BOSS_SCORE_THRESHOLD;
+    game.enemies = [];
+    game.boss = createDevourerBoss(head);
+    game.boss.action = "telegraphing";
+    game.boss.actionClock = 0;
+    game.boss.target = { x: head.x + 120, y: head.y };
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(game.boss.action).toBe("charging");
+    expect(events).toContainEqual({ type: "boss-charge" });
+
+    const nextEvents = updateGame(game, 0, fixedRandom);
+    expect(nextEvents).not.toContainEqual({ type: "boss-charge" });
+  });
+
+  it("defeats the boss on its final armor and never summons it again", () => {
+    const game = createGameState(fixedRandom);
+    game.tutorialComplete = true;
+    game.kills = BOSS_SCORE_THRESHOLD;
+    game.enemies = [];
+    game.boss = createDevourerBoss({ x: 720, y: 450 });
+    game.boss.x = 400;
+    game.boss.y = 300;
+    game.boss.armor = 1;
+    game.boss.core.orbitAngle = 0;
+    game.boss.action = "stalking";
+    game.boss.core.exposed = true;
+    game.boss.core.cooldown = 0;
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 518 + Math.cos(angle) * 45,
+        y: 300 + Math.sin(angle) * 45,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(game.boss).toBeNull();
+    expect(game.bossDefeated).toBe(true);
+    expect(game.bossDefeatEffect).toEqual({
+      x: 400,
+      y: 300,
+      name: "噬环者",
+      reward: 5,
+      remaining: DEVOURER_DEFEAT_EFFECT_SECONDS,
+      duration: DEVOURER_DEFEAT_EFFECT_SECONDS,
+    });
+    expect(snapshotHud(game).bossDefeat).toEqual({
+      name: "噬环者",
+      reward: 5,
+      remaining: DEVOURER_DEFEAT_EFFECT_SECONDS,
+    });
+    expect(game.bodyLength).toBe(1120);
+    expect(game.kills).toBe(BOSS_SCORE_THRESHOLD + 5);
+    expect(events).toContainEqual({
+      type: "boss-defeated",
+      name: "噬环者",
+      reward: 5,
+    });
+
+    updateGame(game, 0, fixedRandom);
+    expect(game.boss).toBeNull();
+
+    updateGame(game, 1, fixedRandom);
+    expect(game.bossDefeatEffect?.remaining).toBeCloseTo(1.2);
+    updateGame(game, 1.21, fixedRandom);
+    expect(game.bossDefeatEffect).toBeNull();
   });
 });

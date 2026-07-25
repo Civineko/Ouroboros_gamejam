@@ -2,9 +2,9 @@
 
 ## 用途与范围
 
-本文档是美工、音频、Vue UI、Phaser 表现开发与集成人员之间的交付协议。审计范围以当前已实现的全屏 UI、新手引导、三类敌人、四种增益、碰撞、闭环、暂停和结束状态为准，不包含 Boss 或其他尚未实现的玩法。
+本文档是美工、音频、Vue UI、Phaser 表现开发与集成人员之间的交付协议。审计范围以当前已实现的全屏 UI、新手引导、四类敌人、四种增益、首个 Boss、碰撞、闭环、暂停和结束状态为准。
 
-当前版本的美术大量使用 Phaser 程序绘制、Lucide 图标与 CSS 作为占位，音频使用 Web Audio 程序音作为离线占位。所有正式成品必须随 Windows `.exe` 和 Android `.apk` 离线打包；浏览器预览不是最终交付物。
+当前版本的美术大量使用 Phaser 程序绘制、Lucide 图标与 CSS 作为占位；主 BGM、Boss 美术和 Boss 音频已经接入。所有正式成品必须随 Windows `.exe` 和 Android `.apk` 离线打包；浏览器预览不是最终交付物。
 
 ### 优先级与状态
 
@@ -23,6 +23,7 @@
 public/assets/ouroboros/                       最终安装包内的运行时成品
 ├── characters/snake/                         蛇头、蛇身、蛇尾
 ├── characters/enemies/                       三类敌人
+├── characters/bosses/                        Boss 本体与核心
 ├── environment/stage/                        场地
 ├── items/powerups/                           四种增益道具
 ├── effects/                                  命中、闭环与增益状态反馈
@@ -42,6 +43,7 @@ src/features/ouroboros/phaser/assets/
 
 src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 ├── audioCatalog.ts                           cue、分类、音量与占位状态
+├── preloadOuroborosAudio.ts                  统一预加载已登记音频
 └── OuroborosAudioController.ts               解锁、播放、暂停与生命周期管理
 ```
 
@@ -77,6 +79,8 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 | P0 | TODO | 静态敌人 | `characters/enemies/spr_enemy_stationary.png` | `64x64` 透明 PNG | 方/盾类稳定剪影，不旋转 | `placeholders/enemyIconPainters.ts` |
 | P0 | TODO | 游荡敌人 | `characters/enemies/spr_enemy_wanderer.png` | `64x64` 透明 PNG | 朝右，风筝/漂移类剪影 | `placeholders/enemyIconPainters.ts` |
 | P0 | TODO | 追踪敌人 | `characters/enemies/spr_enemy_tracker.png` | `64x64` 透明 PNG | 朝右，箭头/眼类追踪剪影 | `placeholders/enemyIconPainters.ts` |
+| P0 | READY | 噬环者动作表 | `characters/bosses/sheet_boss_devourer_actions.png` | `1120x160` 透明 PNG，横排 7 帧 | 朝右、中心旋转；待机、追猎、蓄力、冲刺、硬直和受击 | `bossArtFrames.ts` 已接入 |
+| P0 | READY | 噬环者外置核心 | `characters/bosses/spr_boss_devourer_core.png` | `64x64` 透明 PNG | 距本体约 `155px`；重组时变暗，暴露时显示捕获环 | 正式贴图已接入 |
 | P1 | TODO | 护环道具 | `items/powerups/spr_powerup_shield.png` | `48x48` 透明 PNG | 盾形、浅蓝主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
 | P1 | TODO | 回生道具 | `items/powerups/spr_powerup_heal.png` | `48x48` 透明 PNG | 十字形、珊瑚红主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
 | P1 | TODO | 凝滞道具 | `items/powerups/spr_powerup_stasis.png` | `48x48` 透明 PNG | 雪花形、紫蓝主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
@@ -85,6 +89,8 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 | P1 | TODO | 命中特效 | `effects/sheet_hit_burst.png` | 单帧 `128x128`，6-8 帧横排 | `10-14fps`，首尾帧透明；敌人消失与蛇头受击共用，不改变命中时机 | 蛇头透明闪烁 |
 | P1 | TODO | 通用增益拾取特效 | `effects/sheet_powerup_collect.png` | 单帧 `64x64`，6 帧横排 | `12-16fps`，单色可着色，四种道具按定义颜色复用 | 当前仅让场上道具直接消失 |
 | P1 | TODO | 增益激活光环 | `effects/fx_buff_aura.png` | `96x96` 透明 PNG | 单色可着色；护环常驻，疾行短暂强调；凝滞仍以敌人色调反馈 | HUD 有倒计时，场内缺少持续状态反馈 |
+| P1 | READY | Boss 冲撞蓄力 | `effects/fx_boss_charge_warning.png` | `64x64` 透明 PNG | 预警阶段在 Boss 身后旋转放大 | 与路线走廊和全屏警报组合使用 |
+| P1 | TODO | Boss 腐蚀尾迹 | `effects/fx_boss_corrosive_trail.png` | `64x64` 透明 PNG | 可平铺叠加，不遮住蛇头和闭环边界 | Phaser 半透明圆形占位 |
 | P2 | READY | 主菜单“圈一圈”标题 Logo | `ui/main_menu/logo_main_menu.png` | 原图 `1280x894`；运行时裁透明留白后为 `1236x619` 透明 PNG | 保持完整笔画，在 Windows 横屏及 Android 横、竖屏按可用空间等比缩放 | `OuroborosStage.vue` 已通过 `uiArtCatalog.ts` 集中接入 |
 | P2 | TODO | 品牌标志 | `ui/brand_mark.svg` | 正方形 SVG | 适配浅色背景和高 DPI，轮廓清晰 | Lucide `CircleDotDashed` |
 | P2 | TODO | favicon | `ui/favicon.svg` | `64x64` SVG | Windows 窗口和浏览器 `16px` 下可辨识 | 当前临时衔尾蛇图标 |
@@ -105,6 +111,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 - 点击/拖动转向反馈使用 Phaser 圆环、缩放和淡出绘制，不新增透明 PNG。
 - 教学完成复用闭环净化反馈，空环复用程序绘制的闭环闪光，不为同一动作制作第二套图片。
 - 场上道具脉冲、到期闪烁、蛇头无敌闪烁和敌人碰撞分离均由程序控制。
+- Boss 吸收连线、冲撞路线、阶段波纹、屏外指示、核心捕获环和击败粒子由程序绘制，不制作固定方向贴图。
 
 ## 音频规格
 
@@ -113,7 +120,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 - 音频母带：`48kHz / 24-bit WAV`，保存在团队设计盘或 Git LFS，不进入 `public/`。
 - 运行时 BGM：`48kHz` 立体声 OGG Vorbis，建议 `96-128kbps`，循环点必须无爆音。
 - 运行时 SFX/UI：`48kHz` 单声道 OGG Vorbis，建议 `64-96kbps`；只有经 Android 实机确认存在解码延迟的 `<= 0.25s` 关键短音，才改用 `16-bit WAV`。
-- Windows 与 Android 当前统一以 `.ogg` 为正式交付格式，不同时打包内容相同的 MP3/AAC 副本；若未来目标壳层不支持 OGG，再由 `audioCatalog.ts` 增加回退格式。
+- 新制作资源优先使用 OGG；项目方已提供的 Boss MP3/WAV 保留单一运行时编码，并在 Windows 与 Android 包中验证解码兼容性。
 - 所有文件首尾去除无意义静音，非循环短音尾部保留自然衰减，禁止归一化到 `0dBFS`。
 
 ### 响度与混音基线
@@ -126,7 +133,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 ## 音频资源清单
 
-表中路径均相对于 `public/assets/ouroboros/`；当前所有正式音频均为 `TODO`，运行时先使用无需外部文件的 Web Audio 程序音。
+表中路径均相对于 `public/assets/ouroboros/`；主 BGM 与 Boss 音频已接入，其余反馈音继续使用 Web Audio 程序音。
 
 | 优先级 | 状态 | 资源 | 交付路径 | 时长 / 循环 | 事件触发点 | 建议响度 | 当前占位 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -142,6 +149,11 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 | P1 | TODO | 空环反馈 | `audio/sfx/gameplay/sfx_loop_empty.ogg` | `0.20-0.50s`，不循环 | `GameEvent: empty-loop` | `-20` 至 `-18 LUFS` | 程序短音 |
 | P1 | TODO | 护环抵消 | `audio/sfx/gameplay/sfx_shield_block.ogg` | `0.25-0.60s`，不循环 | `GameEvent: shield-blocked` | `-16` 至 `-14 LUFS` | 程序和弦与噪声 |
 | P1 | TODO | 四种增益拾取音 | `audio/sfx/powerups/sfx_powerup_{shield,heal,stasis,haste}.ogg` | 各 `0.25-0.65s`，不循环 | `GameEvent: power-up-collected`，按 `kind` 选择 | `-18` 至 `-16 LUFS` | 四种程序和弦 |
+| P1 | READY | Boss 战斗 BGM | `audio/music/bgm_boss_devourer.mp3` | `180.61s`，循环 | `boss-spawned` 后开始；击败、失败或重开时停止 | 跟随音乐音量，素材系数 `0.56` | 项目方音频已接入 |
+| P1 | READY | Boss 冲刺 | `audio/sfx/gameplay/sfx_boss_charge.mp3` | `1.67s`，不循环 | `boss-charge`，每次冲刺一次 | 跟随音效音量，素材系数 `0.30` | 项目方音频已接入 |
+| P1 | READY | Boss 出场 | `audio/sfx/gameplay/sfx_boss_spawn.wav` | `1.10s`，不循环 | `boss-spawned` | 跟随音效音量，素材系数 `0.68` | 已接入 |
+| P1 | READY | Boss 核心命中 | `audio/sfx/gameplay/sfx_boss_core_hit.wav` | `0.48s`，不循环 | `boss-hit` | 跟随音效音量，素材系数 `0.76` | 已接入 |
+| P1 | READY | Boss 击败 | `audio/sfx/gameplay/stinger_boss_defeated.wav` | `2.20s`，不循环 | `boss-defeated` | 跟随音效音量，素材系数 `0.72` | 已接入 |
 | P2 | TODO | BGM 备用循环 | `audio/music/bgm_gameplay_loop_02.ogg` | `45-75s`，无缝循环 | 仅用于降低长局重复感；与主循环同响度、同调性 | `-18 LUFS-I` | 无 |
 
 四种增益拾取音的完整文件名为：
@@ -154,7 +166,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 ### 不需要制作的音频
 
 - 不为蛇的持续移动、相机跟随或每帧转向制作循环声，避免疲劳和移动端声道占用。
-- 当前没有敌人攻击、Boss、对白和环境交互，不制作对应音频。
+- 当前没有普通敌人攻击、对白和环境交互，不制作对应音频；Boss 只使用清单中已有明确事件的声音。
 - 触控拖动只需要视觉反馈，不在连续 `pointermove` 上播放声音。
 - 敌人刷新没有公开 `GameEvent`，本轮不制作刷新音；后续只有在事件接口明确后再登记。
 
@@ -174,6 +186,10 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 | `GameEvent: power-up-collected` | 按 `kind` 播放对应拾取音。 |
 | `GameEvent: shield-blocked` | 播放护环抵消音，优先级高于普通增益拾取音。 |
 | `GameEvent: game-over` | 淡出并停止 BGM，播放结束短曲；重新开始时停止旧短曲。 |
+| `GameEvent: boss-spawned` | 播放出场音，将主循环切换为唯一的 Boss BGM 实例。 |
+| `GameEvent: boss-charge` | 停止同类冲刺音并播放一次冲刺提示。 |
+| `GameEvent: boss-hit` | 播放核心破甲音，不中断 Boss BGM。 |
+| `GameEvent: boss-defeated` | 停止 Boss BGM、播放击败短曲并恢复主循环。 |
 
 ## Windows 与 Android 约束
 
@@ -214,16 +230,16 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 - [ ] 评估生命、净化等 HUD 图标是否继续使用 Lucide；只有确需定制时再按 `ui/icon_*.svg` 登记，避免装饰性膨胀。
 - [ ] 主循环完成并验证后，再决定是否制作第二条同调性 BGM。
 
-### P3 Boss 预留
+### P1 Boss 战
 
-- [ ] Boss 玩法确定后再补充本体、攻击预警、受击和死亡动画规格；当前不提前制作素材。
-- [ ] Boss 与普通敌人共用朝右、中心锚点约定，但使用独立 atlas，不塞入普通敌人图片。
-- [ ] Boss 场地装饰不得伪装成地图碰撞边界；Boss 音频只在事件接口确定后登记。
+- [x] 接入噬环者动作表、外置核心、冲撞预警和 Boss 音频。
+- [ ] 输出可复用腐蚀尾迹；冲撞路线继续由 Phaser 绘制。
+- [ ] 在 Windows `.exe` 与 Android `.apk` 中验证三阶段、闭环破甲、暂停恢复和音频解码。
 
 ## 接入与清理流程
 
 1. 制作人员按本文档路径交付运行时成品；母版留在设计盘或 Git LFS。
-2. 开发检查尺寸、透明、锚点、响度、循环点和文件大小。美术登记到 `assetCatalog.ts`；音频登记到待新增的 `audioCatalog.ts`。
+2. 开发检查尺寸、透明、锚点、响度、循环点和文件大小。美术登记到 `assetCatalog.ts`；音频登记到 `audioCatalog.ts`。
 3. 只有文件存在且目标平台加载成功后，才能把本表状态从 `TODO` 改成 `READY`、把 `assetCatalog.ts` 的对应值改成 `"ready"`，并勾选对应 TODO。
 4. 表现层使用正式 texture/audio key 替换占位；图片、特效和声音不得改变碰撞、增益时长、敌人移动或事件顺序。
 5. 单项替换时只删除对应 painter 分支。三类敌人全部接入后再删除 `enemyIconPainters.ts`；四种增益全部接入后再删除 `powerUpIconPainters.ts`。

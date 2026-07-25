@@ -25,6 +25,7 @@ import {
   OuroborosAudioController,
 } from "./audio/OuroborosAudioController";
 import { cueForPowerUp } from "./audio/audioCatalog";
+import { preloadOuroborosAudio } from "./audio/preloadOuroborosAudio";
 import { OuroborosCameraController } from "./camera/OuroborosCameraController";
 import { OuroborosSceneView } from "./OuroborosSceneView";
 import { phaserCollisionSystem } from "./phaserCollisionSystem";
@@ -64,12 +65,14 @@ export class OuroborosScene extends Phaser.Scene {
 
   preload(): void {
     preloadOuroborosArt(this);
+    preloadOuroborosAudio(this);
   }
 
   create(): void {
     if (this.sound instanceof Phaser.Sound.WebAudioSoundManager) {
       this.audio.attachContext(this.sound.context, this.sound.destination);
     }
+    this.audio.attachBossAudio(this.sound);
 
     this.cameraController = new OuroborosCameraController(this.cameras.main);
     this.cameraController.snapTo({
@@ -134,6 +137,7 @@ export class OuroborosScene extends Phaser.Scene {
     this.publishStatus();
     this.publishHud();
     this.sceneView?.render(this.state);
+    if (this.state.boss) this.audio.startBossEncounter();
   }
 
   togglePause(): void {
@@ -261,6 +265,7 @@ export class OuroborosScene extends Phaser.Scene {
 
     const roundEnded = events.some((event) => event.type === "game-over");
     for (const event of events) {
+      this.audio.handleEvent(event);
       if (event.type === "capture") this.audio.play("capture");
       if (event.type === "hit" && !roundEnded) this.audio.play("hit");
       if (event.type === "empty-loop") this.audio.play("empty-loop");
@@ -274,6 +279,25 @@ export class OuroborosScene extends Phaser.Scene {
         this.running = false;
         this.gameOver = true;
         this.publishStatus();
+      }
+
+      if (event.type === "boss-spawned") {
+        this.cameras.main.flash(420, 242, 186, 73, false);
+        this.cameras.main.shake(260, 0.0035);
+      }
+
+      if (event.type === "boss-hit") {
+        this.cameras.main.shake(180, 0.006);
+      }
+
+      if (event.type === "boss-charge") {
+        this.cameras.main.flash(160, 239, 98, 79, false);
+        this.cameras.main.shake(160, 0.005);
+      }
+
+      if (event.type === "boss-defeated") {
+        this.cameras.main.flash(620, 255, 245, 202, false);
+        this.cameras.main.shake(420, 0.008);
       }
     }
 

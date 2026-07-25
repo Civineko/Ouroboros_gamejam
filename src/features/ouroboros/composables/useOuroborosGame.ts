@@ -6,6 +6,13 @@ import {
   loadAudioPreferences,
   saveAudioPreferences,
 } from "../audio/audioPreferences";
+import { DEVOURER_DEFEAT_EFFECT_SECONDS } from "../engine/bosses/bossCatalog";
+import { createDevourerBoss } from "../engine/bosses/bossSystem";
+import {
+  BOSS_SCORE_THRESHOLD,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+} from "../engine/config";
 import { createGameState, snapshotHud } from "../engine/gameEngine";
 import type { CardinalDirection } from "../engine/types";
 import {
@@ -32,6 +39,48 @@ export function useOuroborosGame(
       : DEFAULT_AUDIO_PREFERENCES.effectsVolume;
 
   const initialState = createGameState();
+  const bossPreview = import.meta.env.DEV
+    ? new URLSearchParams(window.location.search).get("boss-preview")
+    : null;
+  if (bossPreview) {
+    initialState.tutorialComplete = true;
+    if (bossPreview === "defeat") {
+      const defeatPreviewTarget = initialState.trail.at(-1) ?? {
+        x: WORLD_WIDTH / 2,
+        y: WORLD_HEIGHT / 2,
+      };
+      initialState.kills = BOSS_SCORE_THRESHOLD + 5;
+      initialState.bossDefeated = true;
+      initialState.bossDefeatEffect = {
+        x: defeatPreviewTarget.x,
+        y: defeatPreviewTarget.y,
+        name: "噬环者",
+        reward: 5,
+        remaining: DEVOURER_DEFEAT_EFFECT_SECONDS,
+        duration: DEVOURER_DEFEAT_EFFECT_SECONDS,
+      };
+      initialState.message = "Boss 击杀演出预览已就绪";
+    } else if (bossPreview === "telegraph") {
+      const previewHead = initialState.trail.at(-1) ?? {
+        x: WORLD_WIDTH / 2,
+        y: WORLD_HEIGHT / 2,
+      };
+      const previewBoss = createDevourerBoss(previewHead);
+      previewBoss.action = "telegraphing";
+      previewBoss.actionClock = 1;
+      previewBoss.target = { ...previewHead };
+      previewBoss.core.exposed = true;
+      previewBoss.core.cooldown = 0;
+      previewBoss.absorbedEnemies = [];
+      initialState.kills = BOSS_SCORE_THRESHOLD;
+      initialState.boss = previewBoss;
+      initialState.enemies = [];
+      initialState.message = "Boss 冲撞预警预览已就绪";
+    } else {
+      initialState.kills = BOSS_SCORE_THRESHOLD;
+      initialState.message = "Boss 预览已就绪";
+    }
+  }
   const hud = shallowRef(snapshotHud(initialState));
   let runtime: OuroborosRuntime | null = null;
   let stopNativeAppLifecycle: () => void = () => undefined;

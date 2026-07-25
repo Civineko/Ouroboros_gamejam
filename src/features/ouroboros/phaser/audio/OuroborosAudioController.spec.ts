@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { OuroborosAudioController } from "./OuroborosAudioController";
+import { OUROBOROS_AUDIO_KEYS } from "./audioCatalog";
 
 class FakeAudioParam {
   value = 1;
@@ -102,5 +103,71 @@ describe("OuroborosAudioController", () => {
     expect(fallbackFactory).not.toHaveBeenCalled();
     expect(context.oscillators).toHaveLength(1);
     expect(context.close).not.toHaveBeenCalled();
+  });
+
+  it("switches to boss music at the configured 5 percent music volume", () => {
+    const context = new FakeAudioContext();
+    context.state = "running";
+    const bossMusic = {
+      manager: {},
+      pendingRemove: false,
+      isPlaying: false,
+      isPaused: false,
+      play: vi.fn(() => true),
+      pause: vi.fn(() => true),
+      resume: vi.fn(() => true),
+      stop: vi.fn(() => true),
+      destroy: vi.fn(),
+      setVolume: vi.fn(),
+    };
+    const sound = {
+      add: vi.fn(() => bossMusic),
+      play: vi.fn(() => true),
+      stopByKey: vi.fn(() => 0),
+    };
+    const controller = createController(context);
+
+    controller.attachBossAudio(sound as never);
+    controller.startMusic();
+    controller.startBossEncounter();
+
+    expect(bossMusic.play).toHaveBeenCalledWith({
+      loop: true,
+      volume: 0.56 * 0.05,
+    });
+  });
+
+  it("routes boss effects through the effects volume", () => {
+    const context = new FakeAudioContext();
+    const bossMusic = {
+      manager: {},
+      pendingRemove: false,
+      isPlaying: false,
+      isPaused: false,
+      play: vi.fn(() => true),
+      pause: vi.fn(() => true),
+      resume: vi.fn(() => true),
+      stop: vi.fn(() => true),
+      destroy: vi.fn(),
+      setVolume: vi.fn(),
+    };
+    const sound = {
+      add: vi.fn(() => bossMusic),
+      play: vi.fn(() => true),
+      stopByKey: vi.fn(() => 0),
+    };
+    const controller = createController(context);
+
+    controller.attachBossAudio(sound as never);
+    controller.setEffectsVolume(0.5);
+    controller.handleEvent({ type: "boss-charge" });
+
+    expect(sound.stopByKey).toHaveBeenCalledWith(
+      OUROBOROS_AUDIO_KEYS.bossCharge,
+    );
+    expect(sound.play).toHaveBeenCalledWith(
+      OUROBOROS_AUDIO_KEYS.bossCharge,
+      { volume: 0.3 * 0.5 },
+    );
   });
 });

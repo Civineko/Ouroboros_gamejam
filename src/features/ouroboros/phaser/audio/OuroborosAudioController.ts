@@ -1,8 +1,13 @@
+import type Phaser from "phaser";
 import { clampVolume } from "../../audio/audioPreferences";
+import type { GameEvent } from "../../engine/types";
 import {
   AUDIO_CUE_CATALOG,
+  audioAssetFor,
+  OUROBOROS_AUDIO_KEYS,
   PROCEDURAL_MUSIC_GAIN,
   type AudioCue,
+  type OuroborosAudioKey,
 } from "./audioCatalog";
 
 interface AudioContextGlobal {
@@ -11,6 +16,9 @@ interface AudioContextGlobal {
 }
 
 type AudioContextFactory = () => AudioContext | null;
+type VolumeControlledSound = Phaser.Sound.BaseSound & {
+  setVolume: (value: number) => Phaser.Sound.BaseSound;
+};
 
 interface ToneOptions {
   frequency: number;
@@ -53,6 +61,9 @@ export class OuroborosAudioController {
   private pendingCues: AudioCue[] = [];
   private bgmAudio: HTMLAudioElement | null = null;
   private bgmLoaded = false;
+  private bossSoundManager: Phaser.Sound.BaseSoundManager | null = null;
+  private bossMusic: VolumeControlledSound | null = null;
+  private bossActive = false;
 
   constructor(
     private readonly contextFactory: AudioContextFactory =
@@ -62,7 +73,20 @@ export class OuroborosAudioController {
   setMusicVolume(volume: number): void {
     this.musicVolume = clampVolume(volume, this.musicVolume);
     if (this.bgmAudio) this.bgmAudio.volume = this.musicVolume;
+    this.applyBossMusicVolume();
     this.applyMusicGain(0.04);
+  }
+
+  attachBossAudio(soundManager: Phaser.Sound.BaseSoundManager): void {
+    if (this.bossSoundManager === soundManager && this.bossMusic) return;
+
+    this.bossMusic?.destroy();
+    const music = audioAssetFor(OUROBOROS_AUDIO_KEYS.bossBattleMusic);
+    this.bossSoundManager = soundManager;
+    this.bossMusic = soundManager.add(music.key, {
+      loop: music.loop,
+      volume: music.volume * this.musicVolume,
+    }) as VolumeControlledSound;
   }
 
   attachContext(context: AudioContext, destination: AudioNode): void {
@@ -124,6 +148,10 @@ export class OuroborosAudioController {
   startMusic(): void {
     this.musicRequested = true;
     this.musicPaused = false;
+    if (this.bossActive) {
+      this.startBossMusic();
+      return;
+    }
     this.ensureBgm();
     this.bgmAudio?.play().catch(() => undefined);
 
@@ -139,11 +167,16 @@ export class OuroborosAudioController {
   pauseMusic(): void {
     this.musicPaused = true;
     this.bgmAudio?.pause();
+    if (this.bossMusic?.isPlaying) this.bossMusic.pause();
   }
 
   resumeMusic(): void {
     if (!this.musicRequested) return;
     this.musicPaused = false;
+    if (this.bossActive) {
+      this.startBossMusic();
+      return;
+    }
     this.ensureBgm();
     this.bgmAudio?.play().catch(() => undefined);
 
@@ -158,6 +191,8 @@ export class OuroborosAudioController {
   stopMusic(): void {
     this.musicRequested = false;
     this.musicPaused = true;
+    this.bossActive = false;
+    this.bossMusic?.stop();
     if (this.bgmAudio) {
       this.bgmAudio.pause();
       this.bgmAudio.currentTime = 0;
@@ -176,6 +211,38 @@ export class OuroborosAudioController {
     }
 
     this.playRunningCue(cue);
+  }
+
+  startBossEncounter(): void {
+    this.bossActive = true;
+    this.bgmAudio?.pause();
+    this.startBossMusic();
+  }
+
+  handleEvent(event: GameEvent): void {
+    if (event.type === "boss-spawned") {
+      this.playBossSfx(OUROBOROS_AUDIO_KEYS.bossSpawn);
+      this.startBossEncounter();
+    }
+
+    if (event.type === "boss-charge") {
+      this.playBossSfx(OUROBOROS_AUDIO_KEYS.bossCharge);
+    }
+
+    if (event.type === "boss-hit") {
+      this.playBossSfx(OUROBOROS_AUDIO_KEYS.bossCoreHit);
+    }
+
+    if (event.type === "boss-defeated") {
+      this.bossActive = false;
+      this.bossMusic?.stop();
+      this.playBossSfx(OUROBOROS_AUDIO_KEYS.bossDefeated);
+      this.resumeBaseMusic();
+    }
+
+    if (event.type === "game-over") {
+      this.bossMusic?.stop();
+    }
   }
 
   private playRunningCue(cue: AudioCue): void {
@@ -239,6 +306,9 @@ export class OuroborosAudioController {
       this.bgmAudio = null;
       this.bgmLoaded = false;
     }
+    this.bossMusic?.destroy();
+    this.bossMusic = null;
+    this.bossSoundManager = null;
     const context = this.context;
     const contextOwned = this.contextOwned;
     this.musicOutput?.disconnect();
@@ -260,6 +330,58 @@ export class OuroborosAudioController {
     this.bgmAudio = new Audio(BGM_PATH);
     this.bgmAudio.loop = true;
     this.bgmAudio.volume = this.musicVolume;
+  }
+
+  private startBossMusic(): void {
+    if (
+      !this.musicRequested ||
+      this.musicPaused ||
+      !this.hasLiveBossSoundManager() ||
+      !this.bossMusic
+    ) {
+      return;
+    }
+
+    this.applyBossMusicVolume();
+    if (this.bossMusic.isPaused) {
+      this.bossMusic.resume();
+    } else if (!this.bossMusic.isPlaying) {
+      const music = audioAssetFor(OUROBOROS_AUDIO_KEYS.bossBattleMusic);
+      this.bossMusic.play({
+        loop: music.loop,
+        volume: music.volume * this.musicVolume,
+      });
+    }
+  }
+
+  private resumeBaseMusic(): void {
+    if (!this.musicRequested || this.musicPaused) return;
+    this.ensureBgm();
+    this.bgmAudio?.play().catch(() => undefined);
+  }
+
+  private applyBossMusicVolume(): void {
+    if (!this.bossMusic) return;
+    const music = audioAssetFor(OUROBOROS_AUDIO_KEYS.bossBattleMusic);
+    this.bossMusic.setVolume(music.volume * this.musicVolume);
+  }
+
+  private playBossSfx(key: OuroborosAudioKey): void {
+    if (!this.hasLiveBossSoundManager() || !this.bossSoundManager) return;
+    const asset = audioAssetFor(key);
+    this.bossSoundManager.stopByKey(key);
+    this.bossSoundManager.play(key, {
+      volume: asset.volume * this.effectsVolume,
+    });
+  }
+
+  private hasLiveBossSoundManager(): boolean {
+    return Boolean(
+      this.bossSoundManager &&
+        this.bossMusic &&
+        !this.bossMusic.pendingRemove &&
+        this.bossMusic.manager,
+    );
   }
 
   private ensureContext(): AudioContext | null {
