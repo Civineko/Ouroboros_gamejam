@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { Enemy, EnemyKind } from "../../engine/types";
+import type { Enemy, EnemyKind } from "../../../engine/types";
 
 const SHADOW = 0x192531;
 const INK = 0x263b42;
@@ -24,7 +24,13 @@ function paintStationary({ graphics, enemy, size }: EnemyIconContext): void {
   graphics.fillStyle(color, 1);
   graphics.fillRoundedRect(-size, -size, size * 2, size * 2, 5);
   graphics.lineStyle(2, LIGHT, 0.68);
-  graphics.strokeRoundedRect(-size + 4, -size + 4, size * 2 - 8, size * 2 - 8, 3);
+  graphics.strokeRoundedRect(
+    -size + 4,
+    -size + 4,
+    size * 2 - 8,
+    size * 2 - 8,
+    3,
+  );
   graphics.fillStyle(INK, 0.82);
   graphics.fillCircle(0, 0, 5);
   graphics.lineStyle(2, LIGHT, 0.9);
@@ -51,15 +57,34 @@ function paintWanderer({ graphics, enemy, size }: EnemyIconContext): void {
 function paintTracker({ graphics, enemy, size }: EnemyIconContext): void {
   const color = colorFromHex(enemy.color);
   graphics.fillStyle(SHADOW, 0.24);
-  graphics.fillTriangle(size + 6, 7, -size + 6, -size * 0.78 + 7, -size + 6, size * 0.78 + 7);
+  graphics.fillTriangle(
+    size + 6,
+    7,
+    -size + 6,
+    -size * 0.78 + 7,
+    -size + 6,
+    size * 0.78 + 7,
+  );
   graphics.fillStyle(color, 1);
-  graphics.fillTriangle(size, 0, -size, -size * 0.78, -size, size * 0.78);
+  graphics.fillTriangle(
+    size,
+    0,
+    -size,
+    -size * 0.78,
+    -size,
+    size * 0.78,
+  );
   graphics.fillStyle(INK, 0.88);
   graphics.fillCircle(-size * 0.12, 0, 6);
   graphics.fillStyle(LIGHT, 1);
   graphics.fillCircle(0, 0, 2.6);
   graphics.lineStyle(2, LIGHT, 0.8);
-  graphics.lineBetween(-size * 0.78, -size * 0.48, -size * 0.78, size * 0.48);
+  graphics.lineBetween(
+    -size * 0.78,
+    -size * 0.48,
+    -size * 0.78,
+    size * 0.48,
+  );
 }
 
 const ENEMY_ICON_PAINTERS: Readonly<Record<EnemyKind, EnemyIconPainter>> = {

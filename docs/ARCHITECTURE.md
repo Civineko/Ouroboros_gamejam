@@ -27,9 +27,13 @@ Phaser Scene 通过快照更新 Vue，不向组件暴露可变 GameState
 
 ### `phaser/`
 
-Phaser 运行时边界。Scene 负责游戏循环与输入，View 负责 WebGL / Canvas 渲染，碰撞适配器使用 Phaser 的圆形相交和多边形包含判断。这里可以调整表现，但玩法数值仍由 `engine/` 管理。
+Phaser 运行时边界。Scene 负责游戏循环与输入，View 负责 WebGL / Canvas 渲染，碰撞适配器使用 Phaser 的圆形、胶囊线段和多边形判断。这里可以调整表现，但玩法数值仍由 `engine/` 管理。
 
-敌人图形通过 `phaser/enemies/enemyIconPainters.ts` 的注册表按类型分发。图标必须拥有独立轮廓，不能只依靠颜色区分。
+### `phaser/assets/` 与 `public/assets/ouroboros/`
+
+`public/assets/ouroboros/` 是唯一的游戏运行时美术根目录。`phaser/assets/assetCatalog.ts` 是 Phaser key、路径和交付状态的唯一清单；Scene 不得写裸资源路径。标记为 `todo` 的资源不会加载，正式文件验收后再切换为 `ready`。
+
+程序绘制占位图集中在 `phaser/assets/placeholders/`。正式美术接入后逐项删除对应占位实现，不把临时绘图留在玩法引擎。文件规格、优先级和交付 TODO 见 [ART_ASSETS.md](ART_ASSETS.md)。
 
 ### `input/`
 
@@ -49,6 +53,7 @@ Vue 与 Phaser 的协调层。负责创建和销毁 Phaser.Game，并将 HUD、�
 | --- | --- | --- |
 | 玩法 | `engine/`、对应 `*.spec.ts` | `npm test` |
 | Phaser / 动效 | `phaser/`、`OuroborosStage.vue` | 桌面和手机截图 |
+| 美术 | `public/assets/ouroboros/`、`docs/ART_ASSETS.md` | 路径、尺寸、锚点、灰度剪影 |
 | UI / 交互 | `components/`、`styles/` | `npm run check`、响应式检查 |
 | 集成 | `composables/`、`app/` | 测试、构建、生命周期清理 |
 

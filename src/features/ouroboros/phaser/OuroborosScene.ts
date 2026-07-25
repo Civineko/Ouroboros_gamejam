@@ -15,6 +15,7 @@ import type {
   Point,
 } from "../engine/types";
 import { actionForKey } from "../input/gameActions";
+import { preloadOuroborosArt } from "./assets/preloadOuroborosArt";
 import { OuroborosSceneView } from "./OuroborosSceneView";
 import { phaserCollisionSystem } from "./phaserCollisionSystem";
 
@@ -44,6 +45,10 @@ export class OuroborosScene extends Phaser.Scene {
   ) {
     super({ key: "ouroboros" });
     this.state = initialState;
+  }
+
+  preload(): void {
+    preloadOuroborosArt(this);
   }
 
   create(): void {
