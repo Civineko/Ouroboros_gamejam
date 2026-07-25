@@ -15,8 +15,32 @@ import {
   stopSteering,
   updateGame,
 } from "./gameEngine";
+import type { CollisionSystem, Point } from "./types";
 
 const fixedRandom = () => 0.25;
+const noCollisions: CollisionSystem = {
+  circleToCircle: () => null,
+  circleToSegment: () => null,
+  containsPoint: () => false,
+};
+
+function sampleClosedPolygon(
+  vertices: readonly Point[],
+  pointsPerEdge = 9,
+): Point[] {
+  return vertices.flatMap((start, index) => {
+    const end = vertices[(index + 1) % vertices.length];
+    if (!end) return [];
+
+    return Array.from({ length: pointsPerEdge }, (_, step) => {
+      const progress = step / pointsPerEdge;
+      return {
+        x: start.x + (end.x - start.x) * progress,
+        y: start.y + (end.y - start.y) * progress,
+      };
+    });
+  });
+}
 
 describe("game engine", () => {
   it("creates a complete, deterministic initial state", () => {
@@ -45,7 +69,7 @@ describe("game engine", () => {
     const xCoordinates = game.trail.map((point) => point.x);
     const yCoordinates = game.trail.map((point) => point.y);
     expect(Math.min(...xCoordinates)).toBeLessThan(center.x - 73);
-    expect(Math.max(...xCoordinates)).toBeGreaterThan(center.x + 72);
+    expect(Math.max(...xCoordinates)).toBeGreaterThan(center.x + 69);
     expect(Math.min(...yCoordinates)).toBeLessThan(center.y - 73);
     expect(Math.max(...yCoordinates)).toBeGreaterThan(center.y + 73);
 
@@ -60,8 +84,8 @@ describe("game engine", () => {
     expect(head).toBeDefined();
     if (tail && head) {
       const opening = Math.hypot(head.x - tail.x, head.y - tail.y);
-      expect(opening).toBeGreaterThan(34);
-      expect(opening).toBeLessThan(37);
+      expect(opening).toBeGreaterThan(50);
+      expect(opening).toBeLessThan(52);
     }
   });
 
@@ -339,6 +363,112 @@ describe("game engine", () => {
     expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
     expect(game.enemies).toHaveLength(0);
     expect(game.bodyLength).toBe(1031);
+  });
+
+  it("closes at the inclusive visual contact distance", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = sampleClosedPolygon([
+      { x: 300, y: 200 },
+      { x: 500, y: 200 },
+      { x: 500, y: 400 },
+      { x: 300, y: 400 },
+    ]);
+    const tail = game.trail[0];
+    expect(tail).toBeDefined();
+    if (!tail) return;
+
+    game.trail[game.trail.length - 1] = { x: tail.x + 34, y: tail.y };
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [
+      {
+        ...createEnemy(20, 0, fixedRandom),
+        x: 400,
+        y: 300,
+      },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
+  });
+
+  it("does not close beyond the visual contact distance", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = sampleClosedPolygon([
+      { x: 300, y: 200 },
+      { x: 500, y: 200 },
+      { x: 500, y: 400 },
+      { x: 300, y: 400 },
+    ]);
+    const tail = game.trail[0];
+    expect(tail).toBeDefined();
+    if (!tail) return;
+
+    game.trail[game.trail.length - 1] = { x: tail.x + 34.01, y: tail.y };
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [
+      {
+        ...createEnemy(20, 0, fixedRandom),
+        x: 400,
+        y: 300,
+      },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toEqual([]);
+    expect(game.enemies).toHaveLength(1);
+  });
+
+  it("preserves the previous minimum loop size after stroke-area capture", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 400 + Math.cos(angle) * 27,
+        y: 300 + Math.sin(angle) * 27,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [
+      {
+        ...createEnemy(20, 0, fixedRandom),
+        x: 400,
+        y: 300,
+      },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
+    expect(game.enemies).toHaveLength(0);
+  });
+
+  it("throttles invalid small-loop checks", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 400 + Math.cos(angle) * 26,
+        y: 300 + Math.sin(angle) * 26,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toEqual([]);
+    expect(game.closureCooldown).toBe(0.45);
+    expect(game.lastRing).toBeNull();
   });
 
   it("finishes the tutorial after the first captured enemy", () => {

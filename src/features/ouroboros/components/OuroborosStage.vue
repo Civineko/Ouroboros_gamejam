@@ -8,6 +8,7 @@ export interface OuroborosStageExpose {
 import { useTemplateRef } from "vue";
 import { Play } from "@lucide/vue";
 import type { HudSnapshot } from "../engine/types";
+import { OUROBOROS_UI_ART } from "../ui/uiArtCatalog";
 import GameOverScreen from "./GameOverScreen.vue";
 import PauseMenu from "./PauseMenu.vue";
 
@@ -46,7 +47,15 @@ defineExpose<OuroborosStageExpose>({
       <Transition name="intro-cover">
         <div v-if="!started" class="stage-cover stage-cover-intro">
           <div class="intro-brand">
-            <h1>圈一圈</h1>
+            <h1 class="intro-title">
+              <img
+                class="intro-logo"
+                :src="OUROBOROS_UI_ART.mainMenuLogo"
+                width="1236"
+                height="619"
+                alt="圈一圈"
+              />
+            </h1>
             <button type="button" class="primary-command" @click="emit('start')">
               <Play :size="17" fill="currentColor" />
               开始游戏
@@ -80,7 +89,6 @@ defineExpose<OuroborosStageExpose>({
           />
         </div>
       </Transition>
-
     </div>
   </div>
 </template>
@@ -131,17 +139,14 @@ defineExpose<OuroborosStageExpose>({
   align-items: center;
   justify-content: center;
   padding: 24px;
-  color: var(--ink);
+  color: var(--surface);
   text-align: center;
-  background: rgba(247, 244, 235, 0.94);
-  backdrop-filter: blur(4px);
+  background: rgba(18, 36, 40, 0.9);
 }
 
 .stage-cover-intro {
-  color: #20373e;
-  background: rgba(244, 244, 236, 0.24);
-  -webkit-backdrop-filter: blur(3px) saturate(0.84) brightness(1.04);
-  backdrop-filter: blur(3px) saturate(0.84) brightness(1.04);
+  color: var(--ink);
+  background: rgba(18, 36, 40, 0.1);
 }
 
 .stage-cover-intro::after {
@@ -150,7 +155,8 @@ defineExpose<OuroborosStageExpose>({
     max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   pointer-events: none;
   content: "";
-  border: 1px solid rgba(255, 253, 247, 0.28);
+  border: 2px solid rgba(255, 250, 240, 0.46);
+  box-shadow: inset 0 0 0 2px rgba(23, 44, 47, 0.22);
 }
 
 .intro-brand {
@@ -169,22 +175,24 @@ defineExpose<OuroborosStageExpose>({
   animation: brand-arrival 650ms cubic-bezier(0.2, 0.75, 0.25, 1) 780ms both;
 }
 
-.stage-cover h1 {
+.intro-title {
+  display: block;
+  width: min(820px, 88vw, 116dvh);
   margin: 0;
-  color: #fffdf7;
-  font-family: "Dymon ShouXieTi", "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: 64px;
-  font-weight: 400;
-  line-height: 1;
+  line-height: 0;
   letter-spacing: 0;
-  text-shadow:
-    0 4px 0 rgba(25, 37, 49, 0.2),
-    0 10px 24px rgba(25, 37, 49, 0.2);
+}
+
+.intro-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 9px 0 rgba(23, 44, 47, 0.3));
 }
 
 .stage-cover-dark {
   color: var(--surface);
-  background: rgba(38, 59, 66, 0.82);
+  background: rgba(18, 36, 40, 0.84);
 }
 
 .stage-cover-dialog {
@@ -227,16 +235,16 @@ defineExpose<OuroborosStageExpose>({
   align-items: center;
   justify-content: center;
   min-width: 146px;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 18px;
-  color: var(--surface);
+  color: var(--ink);
   font-size: 12px;
   font-weight: 900;
   cursor: pointer;
-  background: var(--ink);
-  border: 0;
-  border-radius: 8px;
-  box-shadow: 5px 6px 0 rgba(38, 59, 66, 0.18);
+  background: var(--teal);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 4px 5px 0 rgba(13, 29, 32, 0.76);
   transition:
     transform 160ms ease,
     box-shadow 160ms ease,
@@ -247,22 +255,18 @@ defineExpose<OuroborosStageExpose>({
   min-width: 172px;
   min-height: 50px;
   pointer-events: auto;
+  background: var(--amber);
 }
 
 .primary-command:hover {
-  background: #304a53;
+  background: var(--surface);
   transform: translateY(-1px);
-  box-shadow: 5px 8px 0 rgba(38, 59, 66, 0.16);
+  box-shadow: 4px 7px 0 rgba(13, 29, 32, 0.72);
 }
 
 .primary-command:active {
   transform: translate(3px, 4px);
-  box-shadow: 2px 2px 0 rgba(38, 59, 66, 0.18);
-}
-
-.primary-command.amber {
-  color: var(--ink);
-  background: var(--amber);
+  box-shadow: 1px 1px 0 rgba(13, 29, 32, 0.76);
 }
 
 .intro-cover-leave-active {
@@ -309,18 +313,11 @@ defineExpose<OuroborosStageExpose>({
       max(34px, calc(env(safe-area-inset-bottom) + 7dvh));
   }
 
-  .stage-cover h1 {
-    font-size: 42px;
-  }
 }
 
 @media (max-width: 560px) {
   .stage-cover {
     padding: 14px;
-  }
-
-  .stage-cover h1 {
-    font-size: 50px;
   }
 
   .primary-command {

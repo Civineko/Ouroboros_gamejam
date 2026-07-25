@@ -39,7 +39,7 @@ describe("power-up effects", () => {
     expect(powerUpModifiers(game)).toMatchObject({
       snakeSpeed: 1.18,
       snakeTurn: 1.12,
-      closureDistance: 25,
+      closureDistance: 34,
     });
   });
 

@@ -5,10 +5,10 @@ import type {
   PowerUpKind,
   TimedPowerUpKind,
 } from "../types";
-import { MAX_LIVES } from "../config";
+import { HEAD_RADIUS, MAX_LIVES, TAIL_RADIUS } from "../config";
 import { POWER_UP_DEFINITIONS } from "./powerUpCatalog";
 
-export const BASE_CLOSURE_DISTANCE = 25;
+export const BASE_CLOSURE_DISTANCE = HEAD_RADIUS + TAIL_RADIUS + 4;
 
 export interface PowerUpModifiers {
   snakeSpeed: number;

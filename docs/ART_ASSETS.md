@@ -27,6 +27,7 @@ public/assets/ouroboros/                       最终安装包内的运行时成
 ├── items/powerups/                           四种增益道具
 ├── effects/                                  命中、闭环与增益状态反馈
 ├── ui/                                       品牌与应用图标
+│   ├── main_menu/                            主菜单标题 Logo
 │   └── font_dymon_shouxieti.otf              “圈一圈”标题商用字体
 └── audio/
     ├── music/                                BGM 与结束短曲
@@ -84,6 +85,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 | P1 | TODO | 命中特效 | `effects/sheet_hit_burst.png` | 单帧 `128x128`，6-8 帧横排 | `10-14fps`，首尾帧透明；敌人消失与蛇头受击共用，不改变命中时机 | 蛇头透明闪烁 |
 | P1 | TODO | 通用增益拾取特效 | `effects/sheet_powerup_collect.png` | 单帧 `64x64`，6 帧横排 | `12-16fps`，单色可着色，四种道具按定义颜色复用 | 当前仅让场上道具直接消失 |
 | P1 | TODO | 增益激活光环 | `effects/fx_buff_aura.png` | `96x96` 透明 PNG | 单色可着色；护环常驻，疾行短暂强调；凝滞仍以敌人色调反馈 | HUD 有倒计时，场内缺少持续状态反馈 |
+| P2 | READY | 主菜单“圈一圈”标题 Logo | `ui/main_menu/logo_main_menu.png` | 原图 `1280x894`；运行时裁透明留白后为 `1236x619` 透明 PNG | 保持完整笔画，在 Windows 横屏及 Android 横、竖屏按可用空间等比缩放 | `OuroborosStage.vue` 已通过 `uiArtCatalog.ts` 集中接入 |
 | P2 | TODO | 品牌标志 | `ui/brand_mark.svg` | 正方形 SVG | 适配浅色背景和高 DPI，轮廓清晰 | Lucide `CircleDotDashed` |
 | P2 | TODO | favicon | `ui/favicon.svg` | `64x64` SVG | Windows 窗口和浏览器 `16px` 下可辨识 | 当前临时衔尾蛇图标 |
 
@@ -128,7 +130,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 | 优先级 | 状态 | 资源 | 交付路径 | 时长 / 循环 | 事件触发点 | 建议响度 | 当前占位 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | TODO | 游戏 BGM | `audio/music/bgm_gameplay_loop.ogg` | `45-75s`，无缝循环 | `startRound()` 后启动；暂停时淡出，继续时恢复且不叠加实例 | `-18 LUFS-I` | 双声部程序氛围音 |
+| P0 | READY | 游戏 BGM | `audio/bgm_cosy_bossa.ogg` | OGG，约 `2MB`，循环播放 | `startRound()` 后启动；暂停时停止，继续时恢复且不叠加实例 | 运行时默认音乐音量 `5%` | `OuroborosAudioController` 已接入 |
 | P0 | TODO | 通用按钮点击 | `audio/ui/ui_click.ogg` | `0.06-0.18s`，不循环 | 所有可点击按钮 | `-22` 至 `-20 LUFS` | 程序短音 |
 | P0 | TODO | UI 开始 | `audio/ui/ui_start.ogg` | `0.12-0.35s`，不循环 | 首次开始；同时解锁 AudioContext | `-20` 至 `-18 LUFS` | 程序上行和弦 |
 | P0 | TODO | UI 暂停 | `audio/ui/ui_pause.ogg` | `0.12-0.30s`，不循环 | `togglePause()` 切换到暂停时 | `-20` 至 `-18 LUFS` | 程序下行音 |
@@ -192,7 +194,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 - [ ] 输出场地背景，并确认蛇和三类敌人在其上保持足够明度对比。
 - [ ] 输出蛇头、无缝蛇身条带、蛇尾三件套。
 - [ ] 输出静态、游荡、追踪三类敌人；灰度剪影也必须可区分。
-- [ ] 交付主 BGM、UI 确认/暂停、受击、闭环净化和结束短曲。
+- [ ] 主 BGM 已交付；继续交付 UI 确认/暂停、受击、闭环净化和结束短曲。
 - [x] 开发建立集中式音频目录与控制器；正式 OGG 仍按资源表逐项替换。
 - [ ] 在 Windows `.exe` 和 Android `.apk` 中完成断网核心流程验收。
 
@@ -207,6 +209,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 ### P2 品牌与重复体验
 
+- [x] 主菜单“圈一圈”标题 Logo 已集中接入，并完成横、竖屏等比缩放检查。
 - [ ] 替换品牌标志与临时 favicon。
 - [ ] 评估生命、净化等 HUD 图标是否继续使用 Lucide；只有确需定制时再按 `ui/icon_*.svg` 登记，避免装饰性膨胀。
 - [ ] 主循环完成并验证后，再决定是否制作第二条同调性 BGM。

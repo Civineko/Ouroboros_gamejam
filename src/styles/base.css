@@ -51,6 +51,9 @@ body {
   background: var(--stage);
   overscroll-behavior: none;
   touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #app {
@@ -63,6 +66,11 @@ body {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+img,
+canvas {
+  -webkit-user-drag: none;
 }
 
 button {

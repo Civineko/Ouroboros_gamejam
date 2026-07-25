@@ -21,7 +21,37 @@ npm run dev
 npm run check
 npm test
 npm run build
+npm run verify
 ```
+
+## 原生打包
+
+Web 构建仍是唯一游戏产物，Electron 与 Capacitor 只负责装载 `dist/`，不会建立第二套玩法或 UI。
+
+```bash
+# macOS Apple Silicon .app
+npm run package:mac
+
+# Windows x64 单文件便携 .exe
+npm run package:win
+
+# Android debug APK（要求 JDK 21 与 Android SDK 36）
+npm run package:android
+```
+
+默认输出：
+
+```text
+release/desktop/mac-arm64/Ouroboros.app
+release/desktop/Ouroboros-1.0.0-Windows-x64.exe
+release/android/Ouroboros-1.0.0-debug.apk
+```
+
+`.app` 是包含符号链接的目录，不应直接通过聊天工具按文件夹发送；先使用 `ditto` 或 CI 压成 ZIP。Electron 自带 Chromium/WebGL 运行时，因此解压后的 `.app` 明显大于游戏资源本身。
+
+Android 工程已提交到 `android/`。首次更换图标后运行 `npm run android:assets`，Web 或插件变更后运行 `npm run android:sync`。Debug APK 可安装测试，但商店发布前必须用团队密钥生成并验证签名 Release APK。
+
+完整工具链、签名和验收说明见 [docs/PACKAGING.md](docs/PACKAGING.md)。
 
 ## 目录
 
@@ -53,4 +83,4 @@ src/
 - `Space` / `Esc` / `P`：暂停或继续
 - 暂停菜单：继续游戏、结束本局、调整总音量或静音
 
-生产构建输出到 `dist/`，可部署到任意静态站点。
+浏览器生产构建输出到 `dist/`；最终交付使用上述 `.app`、`.exe` 与 `.apk`。
