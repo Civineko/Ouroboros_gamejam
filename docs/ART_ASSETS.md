@@ -69,18 +69,18 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 | 优先级 | 状态 | 资源 | 交付路径 | 建议规格 | 运行时要求 | 当前占位 / 缺口 |
 | --- | --- | --- | --- | --- | --- | --- |
-| P0 | READY | 场地地砖 | `environment/stage/tex_stage_tile.webp` | `512x512` 无缝 WebP，<= 100KB | 平铺覆盖世界，低细节，不伪造碰撞边界 | `OuroborosSceneView` 已接入 `TileSprite` |
-| P0 | READY | 蛇头 | `characters/snake/spr_snake_head.png` | `128x72` 透明 PNG | 朝右、中心旋转，舌头不得超出画布 | `OuroborosSceneView` 已接入图片渲染 |
-| P0 | READY | 蛇身条带 | `characters/snake/tex_snake_body_strip.png` | `151x30` 透明开放端条带 | 主体视觉厚度对应 `22px` | `OuroborosSceneView` 已接入 Phaser Rope |
-| P0 | READY | 蛇尾 | `characters/snake/spr_snake_tail.png` | `100x30` 透明渐细条带 | 尾尖朝左、粗端连接蛇身 | `OuroborosSceneView` 已接入 Phaser Rope |
-| P0 | READY | 静态敌人 | `characters/enemies/spr_enemy_stationary.png` | `128x112` 透明 PNG | 方/盾类稳定剪影，不旋转 | 正式资源已接入 |
-| P0 | READY | 游荡敌人 | `characters/enemies/spr_enemy_wanderer.png` | `160x118` 透明 PNG | 朝右，风筝/漂移类剪影 | 正式资源已接入 |
-| P0 | READY | 追踪敌人 | `characters/enemies/spr_enemy_tracker.png` | `160x105` 透明 PNG | 朝右，箭头/眼类追踪剪影 | 正式资源已接入 |
-| P1 | READY | 护环道具 | `items/powerups/spr_powerup_shield.png` | 最长边 `96px` 透明 PNG | 盾形、浅蓝主色、中心锚点 | 正式资源已接入 |
-| P1 | READY | 回生道具 | `items/powerups/spr_powerup_heal.png` | 最长边 `96px` 透明 PNG | 十字形、珊瑚红主色、中心锚点 | 正式资源已接入 |
-| P1 | READY | 凝滞道具 | `items/powerups/spr_powerup_stasis.png` | 最长边 `96px` 透明 PNG | 雪花形、紫蓝主色、中心锚点 | 正式资源已接入 |
-| P1 | READY | 疾行道具 | `items/powerups/spr_powerup_haste.png` | 最长边 `96px` 透明 PNG | 闪电形、琥珀黄主色、中心锚点 | 正式资源已接入 |
-| P1 | READY | 共鸣道具 | `items/powerups/spr_powerup_resonance.png` | 最长边 `96px` 透明 PNG | 同心环形、青绿主色、中心锚点 | 正式资源已接入 |
+| P0 | TODO | 场地地砖 | `environment/stage/tex_stage_tile.webp` | `256x256` 无缝 WebP，<= 100KB | 平铺覆盖世界，低细节，不伪造碰撞边界 | `OuroborosSceneView.drawBackground` 网格 |
+| P0 | TODO | 蛇头 | `characters/snake/spr_snake_head.png` | `64x64` 透明 PNG | 朝右、中心旋转，舌头不得超出画布 | `OuroborosSceneView.drawHead` |
+| P0 | TODO | 蛇身条带 | `characters/snake/tex_snake_body_strip.png` | `64x32`，左右无缝 | 主体视觉厚度对应 `22px` | `OuroborosSceneView.drawBody` 线条 |
+| P0 | TODO | 蛇尾 | `characters/snake/spr_snake_tail.png` | `48x48` 透明 PNG | 中心锚点，视觉半径约 `13px` | `OuroborosSceneView.drawBody` 圆形 |
+| P0 | TODO | 静态敌人 | `characters/enemies/spr_enemy_stationary.png` | `64x64` 透明 PNG | 方/盾类稳定剪影，不旋转 | `placeholders/enemyIconPainters.ts` |
+| P0 | TODO | 游荡敌人 | `characters/enemies/spr_enemy_wanderer.png` | `64x64` 透明 PNG | 朝右，风筝/漂移类剪影 | `placeholders/enemyIconPainters.ts` |
+| P0 | TODO | 追踪敌人 | `characters/enemies/spr_enemy_tracker.png` | `64x64` 透明 PNG | 朝右，箭头/眼类追踪剪影 | `placeholders/enemyIconPainters.ts` |
+| P1 | TODO | 护环道具 | `items/powerups/spr_powerup_shield.png` | `48x48` 透明 PNG | 盾形、浅蓝主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | TODO | 回生道具 | `items/powerups/spr_powerup_heal.png` | `48x48` 透明 PNG | 十字形、珊瑚红主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | TODO | 凝滞道具 | `items/powerups/spr_powerup_stasis.png` | `48x48` 透明 PNG | 雪花形、紫蓝主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | TODO | 疾行道具 | `items/powerups/spr_powerup_haste.png` | `48x48` 透明 PNG | 闪电形、琥珀黄主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | TODO | 共鸣道具 | `items/powerups/spr_powerup_resonance.png` | `48x48` 透明 PNG | 同心环形、青绿主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
 | P1 | TODO | 闭环净化粒子 | `effects/fx_capture_particle.png` | `32x32` 透明 PNG | 可着色、中心锚点；仅用于成功净化 | Phaser 多边形闪光 |
 | P1 | TODO | 命中特效 | `effects/sheet_hit_burst.png` | 单帧 `128x128`，6-8 帧横排 | `10-14fps`，首尾帧透明；敌人消失与蛇头受击共用，不改变命中时机 | 蛇头透明闪烁 |
 | P1 | TODO | 通用增益拾取特效 | `effects/sheet_powerup_collect.png` | 单帧 `64x64`，6 帧横排 | `12-16fps`，单色可着色，五种道具按定义颜色复用 | 当前仅让场上道具直接消失 |
@@ -191,17 +191,16 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 ### P0 核心玩法
 
-- [x] 输出场地背景，并确认蛇和三类敌人在其上保持足够明度对比。
-- [x] 输出蛇头、无缝蛇身条带、蛇尾三件套。
-- [x] 输出静态、游荡、追踪三类敌人；灰度剪影也必须可区分。
+- [ ] 输出场地背景，并确认蛇和三类敌人在其上保持足够明度对比。
+- [ ] 输出蛇头、无缝蛇身条带、蛇尾三件套。
+- [ ] 输出静态、游荡、追踪三类敌人；灰度剪影也必须可区分。
 - [ ] 交付主 BGM、UI 确认/暂停、受击、闭环净化和结束短曲。
 - [x] 开发建立集中式音频目录与控制器；正式 OGG 仍按资源表逐项替换。
-- [x] 开发把 P0 美术接入 `assetCatalog.ts`，并清理已替换的程序占位。
 - [ ] 在 Windows `.exe` 和 Android `.apk` 中完成断网核心流程验收。
 
 ### P1 状态反馈
 
-- [x] 输出五种增益图标；在 `24px` 显示尺寸下仍能凭剪影区分，并同时供场上道具与 HUD 使用。
+- [ ] 输出五种增益图标；在 `24px` 显示尺寸下仍能凭剪影区分，并同时供场上道具与 HUD 使用。
 - [ ] 输出闭环粒子、命中特效、通用增益拾取和增益光环。
 - [ ] 开发用 Phaser 补齐触控转向反馈，并继续复用现有 Lucide 状态图标。
 - [ ] 交付空环、护环抵消和五种增益拾取音。
@@ -242,4 +241,4 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 - [ ] 背景不伪造碰撞墙体，特效和触控反馈不遮挡蛇头、敌人或闭环边界。
 - [ ] 音频无削波、爆音、循环断点或重复实例；暂停、后台和恢复行为正确。
 - [ ] `.exe` 与 `.apk` 在断网状态可进入游戏并完成开始、教学、暂停、受击、闭环、增益、结束和重开。
-- [x] 正式资源接入后，相关程序占位、临时图标、`.gitkeep` 与无引用文件已按规则清理。
+- [ ] 正式资源接入后，相关程序占位、临时图标、`.gitkeep` 与无引用文件已按规则清理。

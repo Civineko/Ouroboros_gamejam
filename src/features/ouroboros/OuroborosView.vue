@@ -58,19 +58,13 @@ function handleUiClick(event: MouseEvent): void {
       </button>
 
       <div class="game-stats">
-        <div
-          class="stat-chip level-chip"
-          :aria-label="`关卡 ${game.hud.value.level}`"
-        >
+        <div class="stat-chip level-chip">
           <Layers :size="15" aria-hidden="true" />
           <span>关卡</span>
           <strong>{{ game.hud.value.level.toString().padStart(2, "0") }}</strong>
         </div>
 
-        <div
-          class="stat-chip score-chip"
-          :aria-label="`分数 ${game.hud.value.kills}`"
-        >
+        <div class="stat-chip score-chip">
           <Sparkles :size="15" aria-hidden="true" />
           <span>分数</span>
           <strong>{{ game.hud.value.kills.toString().padStart(2, "0") }}</strong>
@@ -127,13 +121,14 @@ function handleUiClick(event: MouseEvent): void {
 
 .menu-command,
 .stat-chip {
-  color: var(--surface);
-  background: rgba(32, 59, 66, 0.92);
-  border: 2px solid var(--ink);
-  border-radius: 6px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 250, 240, 0.18),
-    3px 4px 0 rgba(13, 29, 32, 0.68);
+  color: #fffdf7;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.14), rgba(255, 253, 247, 0.04)),
+    rgba(25, 37, 49, 0.62);
+  border: 1px solid rgba(255, 253, 247, 0.24);
+  border-radius: 8px;
+  box-shadow: 0 5px 14px rgba(25, 37, 49, 0.22);
+  backdrop-filter: blur(8px);
 }
 
 .menu-command {
@@ -144,25 +139,6 @@ function handleUiClick(event: MouseEvent): void {
   padding: 0;
   cursor: pointer;
   pointer-events: auto;
-  transition:
-    color 140ms ease,
-    background-color 140ms ease,
-    transform 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.menu-command:hover {
-  color: var(--ink);
-  background: var(--amber);
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 250, 240, 0.24),
-    3px 5px 0 rgba(13, 29, 32, 0.68);
-}
-
-.menu-command:active {
-  transform: translate(2px, 3px);
-  box-shadow: inset 0 0 0 1px rgba(255, 250, 240, 0.18);
 }
 
 .game-stats {
@@ -173,27 +149,25 @@ function handleUiClick(event: MouseEvent): void {
 
 .stat-chip {
   display: flex;
-  flex: 0 1 auto;
   gap: 8px;
   align-items: center;
   min-height: 48px;
   padding: 8px 12px;
-  white-space: nowrap;
 }
 
 .stat-chip > svg {
-  color: var(--teal);
+  color: var(--amber);
 }
 
 .stat-chip span {
-  color: rgba(255, 250, 240, 0.72);
+  color: rgba(255, 253, 247, 0.76);
   font-size: 10px;
   font-weight: 900;
 }
 
 .stat-chip strong {
   min-width: 28px;
-  font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 22px;
   font-weight: 500;
   line-height: 1;
@@ -204,7 +178,7 @@ function handleUiClick(event: MouseEvent): void {
 .life-chip > div {
   display: flex;
   gap: 3px;
-  color: rgba(255, 250, 240, 0.3);
+  color: rgba(255, 253, 247, 0.34);
 }
 
 .life-chip .alive {
@@ -222,13 +196,12 @@ function handleUiClick(event: MouseEvent): void {
 
 @media (max-width: 520px) {
   .game-topbar {
-    gap: 6px;
+    gap: 8px;
   }
 
   .menu-command {
-    width: 44px;
-    height: 44px;
-    flex: 0 0 44px;
+    width: 43px;
+    height: 43px;
   }
 
   .game-stats {
@@ -236,7 +209,7 @@ function handleUiClick(event: MouseEvent): void {
   }
 
   .stat-chip {
-    min-height: 44px;
+    min-height: 43px;
     padding: 7px 8px;
   }
 
@@ -247,17 +220,6 @@ function handleUiClick(event: MouseEvent): void {
 
   .active-buffs {
     top: calc(max(14px, env(safe-area-inset-top)) + 51px);
-  }
-}
-
-@media (max-width: 380px) {
-  .stat-chip {
-    gap: 5px;
-    padding-inline: 6px;
-  }
-
-  .stat-chip > span {
-    display: none;
   }
 }
 </style>
