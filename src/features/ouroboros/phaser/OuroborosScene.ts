@@ -83,6 +83,7 @@ export class OuroborosScene extends Phaser.Scene {
     this.input.on("pointermove", this.handlePointerMove, this);
     this.input.keyboard?.clearCaptures();
     this.input.keyboard?.on("keydown", this.handleKeyDown, this);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     window.addEventListener("blur", this.handleWindowBlur);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
@@ -236,6 +237,18 @@ export class OuroborosScene extends Phaser.Scene {
     this.pauseRound();
   };
 
+  private handleScaleResize = (): void => {
+    this.cameraController?.resize();
+    if (this.running) {
+      this.snapCameraToHead();
+      return;
+    }
+    this.cameraController?.snapTo({
+      x: WORLD_WIDTH / 2,
+      y: WORLD_HEIGHT / 2,
+    });
+  };
+
   private processEvents(events: readonly GameEvent[]): void {
     if (events.length === 0) return;
 
@@ -287,6 +300,7 @@ export class OuroborosScene extends Phaser.Scene {
     this.input.off("pointerdown", this.handlePointerDown, this);
     this.input.off("pointermove", this.handlePointerMove, this);
     this.input.keyboard?.off("keydown", this.handleKeyDown, this);
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
     document.removeEventListener(
       "visibilitychange",
       this.handleVisibilityChange,
