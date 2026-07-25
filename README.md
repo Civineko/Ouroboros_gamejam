@@ -27,9 +27,9 @@ npm run build
 
 打包结果统一输出到 `release/`：
 
-- `QuanYiQuan-Demo-v0.1.0-Windows-x64.exe`：Windows 10/11 64 位便携版，双击即可全屏游玩，无需安装。
-- `QuanYiQuan-Demo-v0.1.0-Web.zip`：离线网页版，解压后双击其中的 `index.html` 即可游玩。
-- `QuanYiQuan-Demo-v0.1.0-Android.apk`：Android 7.0 及以上安装包，传到手机后允许安装未知来源应用并安装。
+- `QuanYiQuan-Demo-v0.1.1-Windows-x64.exe`：Windows 10/11 64 位便携版，双击即可全屏游玩，无需安装。
+- `QuanYiQuan-Demo-v0.1.1-Web.zip`：离线网页版，解压后双击其中的 `index.html` 即可游玩。
+- `QuanYiQuan-Demo-v0.1.1-Android.apk`：Android 7.0 及以上安装包，传到手机后允许安装未知来源应用并安装。
 
 重新生成离线网页包或 Windows 包：
 
