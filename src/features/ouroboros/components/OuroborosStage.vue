@@ -47,8 +47,7 @@ defineExpose<OuroborosStageExpose>({
       <Transition name="intro-cover">
         <div v-if="!started" class="stage-cover stage-cover-intro">
           <div class="intro-brand">
-            <p>OUROBOROS SURVIVOR</p>
-            <h1>衔尾蛇幸存者</h1>
+            <h1>首尾相接</h1>
             <button type="button" class="primary-command" @click="emit('start')">
               <Play :size="17" fill="currentColor" />
               开始游戏
@@ -155,13 +154,18 @@ defineExpose<OuroborosStageExpose>({
 }
 
 .intro-brand {
-  --intro-brand-offset: 120px;
-
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: space-between;
+  padding:
+    max(68px, calc(env(safe-area-inset-top) + 9dvh))
+    24px
+    max(68px, calc(env(safe-area-inset-bottom) + 11dvh));
+  pointer-events: none;
   animation: brand-arrival 650ms cubic-bezier(0.2, 0.75, 0.25, 1) 780ms both;
 }
 
@@ -181,20 +185,18 @@ defineExpose<OuroborosStageExpose>({
   font-weight: 900;
 }
 
-.stage-cover-intro p {
-  color: rgba(38, 59, 66, 0.68);
-  font-size: 9px;
-  letter-spacing: 0;
-}
-
 .stage-cover h1 {
-  margin: 9px 0 24px;
-  font-family: Georgia, "Songti SC", "STSong", serif;
-  font-size: 46px;
-  font-weight: 500;
-  line-height: 1.12;
+  margin: 0;
+  color: #fffdf7;
+  font-family:
+    "Arial Black", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 58px;
+  font-weight: 900;
+  line-height: 1;
   letter-spacing: 0;
-  text-shadow: 0 2px 0 rgba(255, 253, 247, 0.48);
+  text-shadow:
+    0 4px 0 rgba(25, 37, 49, 0.2),
+    0 10px 24px rgba(25, 37, 49, 0.2);
 }
 
 .stage-cover h2 {
@@ -248,6 +250,12 @@ defineExpose<OuroborosStageExpose>({
     background-color 160ms ease;
 }
 
+.intro-brand .primary-command {
+  min-width: 172px;
+  min-height: 50px;
+  pointer-events: auto;
+}
+
 .primary-command:hover {
   background: #304a53;
   transform: translateY(-1px);
@@ -279,18 +287,25 @@ defineExpose<OuroborosStageExpose>({
 @keyframes brand-arrival {
   from {
     opacity: 0;
-    transform: scale(0.9) translateY(calc(var(--intro-brand-offset) + 10px));
+    transform: scale(0.96);
   }
 
   to {
     opacity: 1;
-    transform: scale(1) translateY(var(--intro-brand-offset));
+    transform: scale(1);
   }
 }
 
 @media (max-height: 560px) {
   .intro-brand {
-    --intro-brand-offset: 54px;
+    padding:
+      max(38px, calc(env(safe-area-inset-top) + 6dvh))
+      20px
+      max(34px, calc(env(safe-area-inset-bottom) + 7dvh));
+  }
+
+  .stage-cover h1 {
+    font-size: 42px;
   }
 }
 
@@ -311,8 +326,7 @@ defineExpose<OuroborosStageExpose>({
   }
 
   .stage-cover h1 {
-    margin: 7px 0 18px;
-    font-size: 34px;
+    font-size: 50px;
   }
 
   .primary-command {

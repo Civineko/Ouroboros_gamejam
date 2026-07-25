@@ -43,7 +43,9 @@ import type {
 
 const TUTORIAL_MESSAGE = "首尾相接，圈住敌人";
 const FIRST_WAVE_MESSAGE = "正式开始，三角敌人会追踪蛇头！";
-const INITIAL_RING_GAP_ANGLE = 0.9;
+const INITIAL_INFINITY_RADIUS_X = 125;
+const INITIAL_INFINITY_RADIUS_Y = 62.5;
+const INITIAL_INFINITY_GAP_ANGLE = 0.24;
 
 export function enemyLimitFor(kills: number): number {
   return Math.min(MAX_ENEMIES, 4 + Math.floor(kills / 3));
@@ -132,16 +134,15 @@ function appendEnemy(
 
 function createInitialTrail(): Point[] {
   const center = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
-  const sweep = Math.PI * 2 - INITIAL_RING_GAP_ANGLE;
-  const radius = INITIAL_BODY_LENGTH / sweep;
-  const startAngle = INITIAL_RING_GAP_ANGLE / 2;
+  const sweep = Math.PI * 2 - INITIAL_INFINITY_GAP_ANGLE;
+  const startAngle = Math.PI / 2 + INITIAL_INFINITY_GAP_ANGLE / 2;
 
   return Array.from({ length: INITIAL_BODY_POINTS }, (_, index) => {
     const progress = index / (INITIAL_BODY_POINTS - 1);
     const angle = startAngle + sweep * progress;
     return {
-      x: center.x + Math.cos(angle) * radius,
-      y: center.y + Math.sin(angle) * radius,
+      x: center.x + Math.sin(angle) * INITIAL_INFINITY_RADIUS_X,
+      y: center.y + Math.sin(angle * 2) * INITIAL_INFINITY_RADIUS_Y,
     };
   });
 }
@@ -180,7 +181,7 @@ export function createGameState(random: RandomSource = Math.random): GameState {
 
   appendEnemy(game, random, {
     kind: "stationary",
-    position: { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 },
+    position: { x: WORLD_WIDTH / 2 - 75, y: WORLD_HEIGHT / 2 },
   });
   game.powerUpSpawnClock = nextPowerUpInterval(random);
   return game;

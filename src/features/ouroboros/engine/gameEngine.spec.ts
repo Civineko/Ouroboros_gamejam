@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { BODY_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from "./config";
+import {
+  BODY_WIDTH,
+  INITIAL_BODY_LENGTH,
+  INITIAL_BODY_POINTS,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+} from "./config";
 import {
   createEnemy,
   createGameState,
@@ -15,11 +21,12 @@ describe("game engine", () => {
     const game = createGameState(fixedRandom);
     const hud = snapshotHud(game);
 
-    expect(game.trail).toHaveLength(54);
+    expect(game.trail).toHaveLength(INITIAL_BODY_POINTS);
+    expect(game.bodyLength).toBe(INITIAL_BODY_LENGTH);
     expect(game.enemies).toHaveLength(1);
     expect(game.enemies[0]?.kind).toBe("stationary");
     expect(game.enemies[0]).toMatchObject({
-      x: WORLD_WIDTH / 2,
+      x: WORLD_WIDTH / 2 - 75,
       y: WORLD_HEIGHT / 2,
     });
     expect(game.tutorialComplete).toBe(false);
@@ -32,10 +39,17 @@ describe("game engine", () => {
     });
 
     const center = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
-    const radii = game.trail.map((point) =>
-      Math.hypot(point.x - center.x, point.y - center.y),
+    const xCoordinates = game.trail.map((point) => point.x);
+    const yCoordinates = game.trail.map((point) => point.y);
+    expect(Math.min(...xCoordinates)).toBeLessThan(center.x - 120);
+    expect(Math.max(...xCoordinates)).toBeGreaterThan(center.x + 120);
+    expect(Math.min(...yCoordinates)).toBeLessThan(center.y - 60);
+    expect(Math.max(...yCoordinates)).toBeGreaterThan(center.y + 60);
+
+    const centerCrossings = game.trail.filter(
+      (point) => Math.hypot(point.x - center.x, point.y - center.y) < 10,
     );
-    expect(Math.max(...radii) - Math.min(...radii)).toBeLessThan(0.001);
+    expect(centerCrossings.length).toBeGreaterThanOrEqual(2);
 
     const tail = game.trail[0];
     const head = game.trail.at(-1);
@@ -44,7 +58,7 @@ describe("game engine", () => {
     if (tail && head) {
       const opening = Math.hypot(head.x - tail.x, head.y - tail.y);
       expect(opening).toBeGreaterThan(25);
-      expect(opening).toBeLessThan(80);
+      expect(opening).toBeLessThan(40);
     }
   });
 
