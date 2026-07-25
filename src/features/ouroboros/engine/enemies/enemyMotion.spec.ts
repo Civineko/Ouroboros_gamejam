@@ -95,7 +95,7 @@ describe("enemy motion", () => {
   });
 
   it("keeps a moving flock separated over time", () => {
-    const enemies = [1, 2, 4, 5, 7, 8].map((id, index) => ({
+    const enemies = [1, 2, 5, 6, 9, 10].map((id, index) => ({
       ...createEnemy(id, 0, fixedRandom),
       x: 360 + (index % 3) * 18,
       y: 270 + Math.floor(index / 3) * 18,

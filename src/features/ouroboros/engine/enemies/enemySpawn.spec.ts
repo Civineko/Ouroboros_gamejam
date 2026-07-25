@@ -114,6 +114,7 @@ describe("enemy spawn planning", () => {
         enemies: [],
         random: constantRandom(randomValue),
         tutorial: true,
+        level: 1,
       });
 
       expect(plan.kind).toBe("stationary");
@@ -133,6 +134,7 @@ describe("enemy spawn planning", () => {
         enemies: [],
         random: constantRandom(randomValue),
         tutorial: true,
+        level: 1,
       });
 
       expect(Math.abs(plan.position.x - head.x)).toBeLessThanOrEqual(380);
@@ -152,6 +154,7 @@ describe("enemy spawn planning", () => {
       enemies: [],
       random: constantRandom(0.5),
       tutorial: true,
+      level: 1,
     });
 
     expect(plan.position).toEqual({
@@ -178,6 +181,7 @@ describe("enemy spawn planning", () => {
         trail: openTrail,
         enemies: [],
         random: constantRandom(randomValue),
+        level: 1,
       });
 
       expect(plan.kind).toBe(expectedKind);
@@ -192,6 +196,7 @@ describe("enemy spawn planning", () => {
         trail: openTrail,
         enemies: [],
         random: constantRandom(randomValue),
+        level: 1,
       });
 
       expect(plan.kind).toBe("stationary");
@@ -212,6 +217,7 @@ describe("enemy spawn planning", () => {
         trail: openTrail,
         enemies,
         random: constantRandom(randomValue),
+        level: 1,
       });
 
       expectSafePosition(plan.position, openTrail, enemies);
@@ -226,6 +232,7 @@ describe("enemy spawn planning", () => {
       trail: openTrail,
       enemies,
       random: constantRandom(0.5),
+      level: 1,
     });
 
     expect(Number.isFinite(plan.position.x)).toBe(true);

@@ -12,6 +12,7 @@ import {
   setCardinalDirection,
   snapshotHud,
   steerToward,
+  stopSteering,
   updateGame,
 } from "./gameEngine";
 
@@ -84,6 +85,22 @@ describe("game engine", () => {
 
     expect(game.tutorialAutoSteer).toBe(false);
     expect(game.target).toEqual({ x: 300, y: 200 });
+  });
+
+  it("keeps the current heading after pointer steering is released", () => {
+    const game = createGameState(fixedRandom);
+    game.enemies = [];
+    game.tutorialComplete = true;
+
+    steerToward(game, { x: 300, y: 200 });
+    updateGame(game, 1 / 60, fixedRandom);
+    const releasedAngle = game.angle;
+
+    stopSteering(game);
+    updateGame(game, 0.1, fixedRandom);
+
+    expect(game.steering).toBe(false);
+    expect(game.angle).toBe(releasedAngle);
   });
 
   it("does not spawn extra enemies during the tutorial", () => {

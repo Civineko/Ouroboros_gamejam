@@ -16,6 +16,7 @@ export interface EnemySpawnContext {
   enemies: readonly Enemy[];
   random: RandomSource;
   tutorial?: boolean;
+  level: number;
 }
 
 export interface EnemySpawnPlan {
@@ -53,8 +54,10 @@ function sampleUnit(random: RandomSource): number {
   return Math.max(0, Math.min(1 - Number.EPSILON, value));
 }
 
-function chooseKind(random: RandomSource): EnemyKind {
+function chooseKind(random: RandomSource, level: number): EnemyKind {
   const roll = sampleUnit(random);
+  // 第 5 关后出现射手，约占 10%
+  if (level >= 5 && roll < 0.1) return "shooter";
   if (roll < 0.1) return "stationary";
   if (roll < 0.2) return "wanderer";
   return "tracker";
@@ -249,9 +252,9 @@ function tutorialPosition(
 }
 
 export function planEnemySpawn(context: EnemySpawnContext): EnemySpawnPlan {
-  const kind = context.tutorial ? "stationary" : chooseKind(context.random);
+  const kind = context.tutorial ? "stationary" : chooseKind(context.random, context.level);
   const margin =
-    kind === "stationary" ? STATIONARY_WORLD_MARGIN : MOVING_WORLD_MARGIN;
+    kind === "stationary" || kind === "shooter" ? STATIONARY_WORLD_MARGIN : MOVING_WORLD_MARGIN;
   const head = context.trail.at(-1);
   const bounds =
     context.tutorial && head

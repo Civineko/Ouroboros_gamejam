@@ -9,6 +9,7 @@ import {
   setCardinalDirection,
   snapshotHud,
   steerToward,
+  stopSteering,
   updateGame,
 } from "../engine/gameEngine";
 import type {
@@ -81,6 +82,8 @@ export class OuroborosScene extends Phaser.Scene {
 
     this.input.on("pointerdown", this.handlePointerDown, this);
     this.input.on("pointermove", this.handlePointerMove, this);
+    this.input.on("pointerup", this.handlePointerRelease, this);
+    this.input.on("pointerupoutside", this.handlePointerRelease, this);
     this.input.keyboard?.clearCaptures();
     this.input.keyboard?.on("keydown", this.handleKeyDown, this);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
@@ -193,6 +196,10 @@ export class OuroborosScene extends Phaser.Scene {
     if (pointer.isDown) this.aimAt({ x: pointer.worldX, y: pointer.worldY });
   }
 
+  private handlePointerRelease(): void {
+    stopSteering(this.state);
+  }
+
   private handleKeyDown(event: KeyboardEvent): void {
     if (this.isFormControl(event.target)) return;
 
@@ -299,6 +306,8 @@ export class OuroborosScene extends Phaser.Scene {
   private handleShutdown(): void {
     this.input.off("pointerdown", this.handlePointerDown, this);
     this.input.off("pointermove", this.handlePointerMove, this);
+    this.input.off("pointerup", this.handlePointerRelease, this);
+    this.input.off("pointerupoutside", this.handlePointerRelease, this);
     this.input.keyboard?.off("keydown", this.handleKeyDown, this);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
     document.removeEventListener(
