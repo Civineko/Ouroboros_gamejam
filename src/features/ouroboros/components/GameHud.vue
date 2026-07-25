@@ -95,15 +95,50 @@ defineProps<{
   color: var(--coral);
 }
 
+@media (max-width: 820px), (hover: none), (max-height: 560px) and (max-width: 960px) {
+  .hud {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .hud-item {
+    min-height: 44px;
+    padding: 7px 8px;
+    color: var(--surface);
+    background: rgba(25, 37, 49, 0.46);
+    border-color: rgba(255, 253, 247, 0.18);
+    backdrop-filter: blur(8px);
+  }
+
+  .hud-item > svg {
+    color: var(--amber);
+  }
+
+  .hud-item span {
+    color: rgba(255, 253, 247, 0.78);
+    font-size: 9px;
+  }
+
+  .hud-item strong {
+    font-size: 18px;
+  }
+
+  .hud-lives > div {
+    color: rgba(255, 253, 247, 0.3);
+  }
+}
+
 @media (max-width: 560px) {
   .hud {
     gap: 5px;
   }
 
   .hud-item {
-    display: block;
-    min-height: 54px;
-    padding: 8px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3px;
+    min-height: 43px;
+    padding: 6px;
   }
 
   .hud-item > svg {
@@ -113,11 +148,11 @@ defineProps<{
   .hud-item strong,
   .hud-lives > div {
     display: flex;
-    margin-top: 5px;
+    margin-top: 0;
   }
 
   .hud-item strong {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 </style>

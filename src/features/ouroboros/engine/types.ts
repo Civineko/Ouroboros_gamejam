@@ -59,6 +59,7 @@ export interface GameState {
   invulnerable: number;
   nextEnemyId: number;
   message: string;
+  tutorialComplete: boolean;
   powerUps: PowerUp[];
   activeEffects: ActiveEffect[];
   shieldCharges: number;

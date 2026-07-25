@@ -41,6 +41,9 @@ import type {
   RandomSource,
 } from "./types";
 
+const TUTORIAL_MESSAGE = "首尾相接，圈住敌人";
+const FIRST_WAVE_MESSAGE = "正式开始，三角敌人会追踪蛇头！";
+
 export function enemyLimitFor(kills: number): number {
   return Math.min(MAX_ENEMIES, 4 + Math.floor(kills / 3));
 }
@@ -112,6 +115,7 @@ function appendEnemy(game: GameState, random: RandomSource): void {
     trail: game.trail,
     enemies: game.enemies,
     random,
+    tutorial: !game.tutorialComplete,
   });
   game.enemies.push(
     createEnemy(game.nextEnemyId, game.kills, random, spawn),
@@ -147,7 +151,8 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     lastRing: null,
     invulnerable: 0,
     nextEnemyId: 0,
-    message: "引导蛇身围住敌人，让蛇头触碰蛇尾",
+    message: TUTORIAL_MESSAGE,
+    tutorialComplete: false,
     powerUps: [],
     activeEffects: [],
     shieldCharges: 0,
@@ -155,7 +160,7 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     nextPowerUpId: 0,
   };
 
-  for (let index = 0; index < 3; index += 1) appendEnemy(game, random);
+  appendEnemy(game, random);
   game.powerUpSpawnClock = nextPowerUpInterval(random);
   return game;
 }
@@ -260,9 +265,10 @@ export function updateGame(
   game.trail.push(nextHead);
   trimTrailToLength(game.trail, game.bodyLength);
 
-  game.spawnClock += delta;
+  game.spawnClock = game.tutorialComplete ? game.spawnClock + delta : 0;
   const spawnInterval = Math.max(0.48, 1.35 - game.kills * 0.025);
   if (
+    game.tutorialComplete &&
     game.spawnClock >= spawnInterval &&
     game.enemies.length < enemyLimitFor(game.kills)
   ) {
@@ -273,9 +279,11 @@ export function updateGame(
   const liveHead = game.trail.at(-1);
   if (!liveHead) return events;
 
-  events.push(
-    ...updatePowerUps(game, liveHead, delta, random, collisions),
-  );
+  if (game.tutorialComplete) {
+    events.push(
+      ...updatePowerUps(game, liveHead, delta, random, collisions),
+    );
+  }
   const activeModifiers = powerUpModifiers(game);
   updateEnemyMotion(
     game.enemies,
@@ -344,7 +352,13 @@ export function updateGame(
     if (captured > 0) {
       game.kills += captured;
       game.bodyLength += captured * 31;
-      game.message = `闭环成功，净化了 ${captured} 个敌人！`;
+      if (game.tutorialComplete) {
+        game.message = `闭环成功，净化了 ${captured} 个敌人！`;
+      } else {
+        game.tutorialComplete = true;
+        game.spawnClock = 0;
+        game.message = FIRST_WAVE_MESSAGE;
+      }
       events.push({ type: "capture", count: captured, totalKills: game.kills });
     } else {
       game.message = "形成了空环，没有敌人被圈住";
@@ -353,6 +367,11 @@ export function updateGame(
 
     const pointsToRelease = Math.min(9, Math.max(0, game.trail.length - 25));
     game.trail.splice(0, pointsToRelease);
+  }
+
+  if (!game.tutorialComplete && game.lives > 0 && game.enemies.length === 0) {
+    appendEnemy(game, random);
+    game.message = TUTORIAL_MESSAGE;
   }
 
   return events;
