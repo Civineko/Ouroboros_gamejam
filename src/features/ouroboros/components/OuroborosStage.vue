@@ -1,6 +1,6 @@
 <script lang="ts">
 export interface OuroborosStageExpose {
-  getCanvas: () => HTMLCanvasElement | null;
+  getContainer: () => HTMLElement | null;
 }
 </script>
 
@@ -16,8 +16,7 @@ import {
   Play,
   RotateCcw,
 } from "@lucide/vue";
-import { WORLD_HEIGHT, WORLD_WIDTH } from "../engine/config";
-import type { CardinalDirection, HudSnapshot, Point } from "../engine/types";
+import type { CardinalDirection, HudSnapshot } from "../engine/types";
 
 defineProps<{
   started: boolean;
@@ -30,48 +29,20 @@ const emit = defineEmits<{
   start: [];
   pause: [];
   restart: [];
-  aim: [point: Point];
   direction: [direction: CardinalDirection];
 }>();
 
-const canvas = useTemplateRef<HTMLCanvasElement>("canvas");
-
-function aimFromPointer(event: PointerEvent): void {
-  const element = event.currentTarget as HTMLCanvasElement;
-  const bounds = element.getBoundingClientRect();
-  if (bounds.width === 0 || bounds.height === 0) return;
-
-  emit("aim", {
-    x: ((event.clientX - bounds.left) / bounds.width) * WORLD_WIDTH,
-    y: ((event.clientY - bounds.top) / bounds.height) * WORLD_HEIGHT,
-  });
-}
-
-function handlePointerDown(event: PointerEvent): void {
-  const element = event.currentTarget as HTMLCanvasElement;
-  element.focus();
-  aimFromPointer(event);
-}
-
-function handlePointerMove(event: PointerEvent): void {
-  if (event.buttons > 0 || event.pointerType === "touch") aimFromPointer(event);
-}
+const container = useTemplateRef<HTMLElement>("container");
 
 defineExpose<OuroborosStageExpose>({
-  getCanvas: () => canvas.value,
+  getContainer: () => container.value,
 });
 </script>
 
 <template>
   <div class="stage-shell">
     <div class="canvas-frame">
-      <canvas
-        ref="canvas"
-        tabindex="0"
-        aria-label="衔尾蛇游戏区域"
-        @pointerdown="handlePointerDown"
-        @pointermove="handlePointerMove"
-      />
+      <div ref="container" class="phaser-host" aria-label="衔尾蛇游戏区域" />
 
       <div v-if="!started" class="stage-cover">
         <CircleDotDashed :size="48" :stroke-width="1.5" aria-hidden="true" />
@@ -135,12 +106,18 @@ defineExpose<OuroborosStageExpose>({
   box-shadow: 10px 12px 0 var(--shadow);
 }
 
-canvas {
+.phaser-host {
   display: block;
   width: 100%;
   aspect-ratio: 920 / 620;
   cursor: crosshair;
   touch-action: none;
+}
+
+.phaser-host :deep(canvas) {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .stage-cover {

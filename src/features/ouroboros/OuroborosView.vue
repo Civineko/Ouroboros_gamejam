@@ -9,7 +9,7 @@ import type { OuroborosStageExpose } from "./components/OuroborosStage.vue";
 import { useOuroborosGame } from "./composables/useOuroborosGame";
 
 const stage = useTemplateRef<OuroborosStageExpose>("stage");
-const game = useOuroborosGame(() => stage.value?.getCanvas() ?? null);
+const game = useOuroborosGame(() => stage.value?.getContainer() ?? null);
 </script>
 
 <template>
@@ -35,7 +35,6 @@ const game = useOuroborosGame(() => stage.value?.getCanvas() ?? null);
           @start="game.start"
           @pause="game.togglePause"
           @restart="game.start"
-          @aim="game.aimAt"
           @direction="game.steer"
         />
         <div class="game-message" aria-live="polite">

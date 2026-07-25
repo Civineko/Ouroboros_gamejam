@@ -1,105 +1,57 @@
 import { onMounted, onUnmounted, readonly, ref, shallowRef } from "vue";
-import { MAX_FRAME_DELTA } from "../engine/config";
+import { createGameState, snapshotHud } from "../engine/gameEngine";
+import type { CardinalDirection } from "../engine/types";
 import {
-  createGameState,
-  setCardinalDirection,
-  snapshotHud,
-  steerToward,
-  updateGame,
-} from "../engine/gameEngine";
-import type {
-  CardinalDirection,
-  GameEvent,
-  GameState,
-  Point,
-} from "../engine/types";
-import { actionForKey } from "../input/gameActions";
-import { drawGame } from "../rendering/canvasRenderer";
+  createOuroborosRuntime,
+  type OuroborosRuntime,
+} from "../phaser/createOuroborosRuntime";
 
 export function useOuroborosGame(
-  getCanvas: () => HTMLCanvasElement | null,
+  getContainer: () => HTMLElement | null,
 ) {
   const started = ref(false);
   const paused = ref(false);
   const gameOver = ref(false);
 
-  let game: GameState = createGameState();
-  const hud = shallowRef(snapshotHud(game));
-  let running = false;
-  let animationFrame: number | null = null;
-  let previousTime: number | null = null;
-
-  function syncHud(): void {
-    hud.value = snapshotHud(game);
-  }
-
-  function processEvents(events: readonly GameEvent[]): void {
-    if (events.length === 0) return;
-
-    for (const event of events) {
-      if (event.type === "game-over") {
-        running = false;
-        gameOver.value = true;
-      }
-    }
-
-    syncHud();
-  }
-
-  function frame(time: number): void {
-    if (previousTime === null) previousTime = time;
-    const delta = Math.min(MAX_FRAME_DELTA, (time - previousTime) / 1000);
-    previousTime = time;
-
-    if (running && !paused.value) {
-      processEvents(updateGame(game, delta));
-    }
-
-    const canvas = getCanvas();
-    if (canvas) drawGame(canvas, game);
-    animationFrame = window.requestAnimationFrame(frame);
-  }
+  const initialState = createGameState();
+  const hud = shallowRef(snapshotHud(initialState));
+  let runtime: OuroborosRuntime | null = null;
 
   function start(): void {
-    game = createGameState();
-    running = true;
-    previousTime = null;
-    started.value = true;
-    paused.value = false;
-    gameOver.value = false;
-    syncHud();
+    runtime?.scene.startRound();
   }
 
   function togglePause(): void {
-    if (!started.value || gameOver.value) return;
-    paused.value = !paused.value;
-  }
-
-  function aimAt(point: Point): void {
-    steerToward(game, point);
+    runtime?.scene.togglePause();
   }
 
   function steer(direction: CardinalDirection): void {
-    setCardinalDirection(game, direction);
-  }
-
-  function handleKeydown(event: KeyboardEvent): void {
-    const action = actionForKey(event.key);
-    if (!action) return;
-
-    event.preventDefault();
-    if (action.type === "steer") steer(action.direction);
-    if (action.type === "toggle-pause") togglePause();
+    runtime?.scene.steer(direction);
   }
 
   onMounted(() => {
-    window.addEventListener("keydown", handleKeydown);
-    animationFrame = window.requestAnimationFrame(frame);
+    const container = getContainer();
+    if (!container) return;
+
+    runtime = createOuroborosRuntime(
+      container,
+      {
+        onHudChange(nextHud) {
+          hud.value = nextHud;
+        },
+        onStatusChange(status) {
+          started.value = status.started;
+          paused.value = status.paused;
+          gameOver.value = status.gameOver;
+        },
+      },
+      initialState,
+    );
   });
 
   onUnmounted(() => {
-    window.removeEventListener("keydown", handleKeydown);
-    if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+    runtime?.game.destroy(true);
+    runtime = null;
   });
 
   return {
@@ -109,7 +61,6 @@ export function useOuroborosGame(
     hud: readonly(hud),
     start,
     togglePause,
-    aimAt,
     steer,
   };
 }

@@ -1,4 +1,4 @@
-import type { Point } from "./types";
+import type { CollisionSystem, Point } from "./types";
 
 export function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -43,6 +43,15 @@ export function pointInPolygon(point: Point, polygon: readonly Point[]): boolean
 export function angleDifference(target: number, current: number): number {
   return Math.atan2(Math.sin(target - current), Math.cos(target - current));
 }
+
+export const nativeCollisionSystem: CollisionSystem = {
+  circlesOverlap(first, firstRadius, second, secondRadius) {
+    return distance(first, second) < firstRadius + secondRadius;
+  },
+  containsPoint(polygon, point) {
+    return pointInPolygon(point, polygon);
+  },
+};
 
 export function trimTrailToLength(trail: Point[], targetLength: number): void {
   if (trail.length < 2) return;
