@@ -1,9 +1,5 @@
 import Phaser from "phaser";
 import {
-  clampMasterVolume,
-  DEFAULT_AUDIO_PREFERENCES,
-} from "../audio/audioPreferences";
-import {
   MAX_FRAME_DELTA,
   WORLD_HEIGHT,
   WORLD_WIDTH,
@@ -24,6 +20,10 @@ import type {
 } from "../engine/types";
 import { actionForKey } from "../input/gameActions";
 import { preloadOuroborosArt } from "./assets/preloadOuroborosArt";
+import {
+  OuroborosAudioController,
+} from "./audio/OuroborosAudioController";
+import { cueForPowerUp } from "./audio/audioCatalog";
 import { OuroborosCameraController } from "./camera/OuroborosCameraController";
 import { OuroborosSceneView } from "./OuroborosSceneView";
 import { phaserCollisionSystem } from "./phaserCollisionSystem";
@@ -51,7 +51,7 @@ export class OuroborosScene extends Phaser.Scene {
   private gameOver = false;
   private skipNextUpdate = true;
   private hudPublishClock = 0;
-  private masterVolume = DEFAULT_AUDIO_PREFERENCES.masterVolume;
+  private readonly audio = new OuroborosAudioController();
 
   constructor(
     private readonly callbacks: OuroborosSceneCallbacks,
@@ -66,6 +66,10 @@ export class OuroborosScene extends Phaser.Scene {
   }
 
   create(): void {
+    if (this.sound instanceof Phaser.Sound.WebAudioSoundManager) {
+      this.audio.attachContext(this.sound.context, this.sound.destination);
+    }
+
     this.cameraController = new OuroborosCameraController(this.cameras.main);
     this.cameraController.snapTo({
       x: WORLD_WIDTH / 2,
@@ -74,12 +78,12 @@ export class OuroborosScene extends Phaser.Scene {
     this.sceneView = new OuroborosSceneView(this);
     this.sceneView.render(this.state);
     this.sceneView.playIntroReveal();
-    this.sound.volume = this.masterVolume;
 
     this.input.on("pointerdown", this.handlePointerDown, this);
     this.input.on("pointermove", this.handlePointerMove, this);
     this.input.keyboard?.clearCaptures();
     this.input.keyboard?.on("keydown", this.handleKeyDown, this);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     window.addEventListener("blur", this.handleWindowBlur);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
@@ -113,6 +117,9 @@ export class OuroborosScene extends Phaser.Scene {
     const restarting = this.started;
     if (restarting) this.state = createGameState();
 
+    this.audio.unlock();
+    this.audio.play(restarting ? "round-restart" : "round-start");
+    this.audio.startMusic();
     this.sceneView?.completeIntroReveal();
     this.running = true;
     this.started = true;
@@ -128,15 +135,16 @@ export class OuroborosScene extends Phaser.Scene {
 
   togglePause(): void {
     if (!this.started || this.gameOver) return;
-    this.setPaused(!this.paused);
+    this.setPaused(!this.paused, true);
   }
 
   pauseRound(): void {
     if (!this.started || this.gameOver) return;
-    this.setPaused(true);
+    this.setPaused(true, false);
   }
 
   endRound(): void {
+    this.audio.stopMusic();
     this.state = createGameState();
     this.running = false;
     this.started = false;
@@ -154,9 +162,17 @@ export class OuroborosScene extends Phaser.Scene {
     this.sceneView?.playIntroReveal();
   }
 
-  setMasterVolume(volume: number): void {
-    this.masterVolume = clampMasterVolume(volume);
-    if (this.sceneView) this.sound.volume = this.masterVolume;
+  setAudioVolumes(musicVolume: number, effectsVolume: number): void {
+    this.audio.setMusicVolume(musicVolume);
+    this.audio.setEffectsVolume(effectsVolume);
+  }
+
+  playUiClick(): void {
+    this.audio.play("ui-click");
+  }
+
+  unlockAudio(): void {
+    this.audio.unlock();
   }
 
   steer(direction: CardinalDirection): void {
@@ -199,10 +215,17 @@ export class OuroborosScene extends Phaser.Scene {
     );
   }
 
-  private setPaused(paused: boolean): void {
+  private setPaused(paused: boolean, playFeedback: boolean): void {
     if (this.paused === paused) return;
     this.paused = paused;
-    if (!paused) this.skipNextUpdate = true;
+    if (paused) {
+      if (playFeedback) this.audio.play("pause");
+      this.audio.pauseMusic();
+    } else {
+      this.skipNextUpdate = true;
+      this.audio.resumeMusic();
+      if (playFeedback) this.audio.play("resume");
+    }
     this.publishStatus();
   }
 
@@ -214,11 +237,33 @@ export class OuroborosScene extends Phaser.Scene {
     this.pauseRound();
   };
 
+  private handleScaleResize = (): void => {
+    this.cameraController?.resize();
+    if (this.running) {
+      this.snapCameraToHead();
+      return;
+    }
+    this.cameraController?.snapTo({
+      x: WORLD_WIDTH / 2,
+      y: WORLD_HEIGHT / 2,
+    });
+  };
+
   private processEvents(events: readonly GameEvent[]): void {
     if (events.length === 0) return;
 
+    const roundEnded = events.some((event) => event.type === "game-over");
     for (const event of events) {
+      if (event.type === "capture") this.audio.play("capture");
+      if (event.type === "hit" && !roundEnded) this.audio.play("hit");
+      if (event.type === "empty-loop") this.audio.play("empty-loop");
+      if (event.type === "shield-blocked") this.audio.play("shield-blocked");
+      if (event.type === "power-up-collected") {
+        this.audio.play(cueForPowerUp(event.kind));
+      }
       if (event.type === "game-over") {
+        this.audio.stopMusic();
+        this.audio.play("game-over");
         this.running = false;
         this.gameOver = true;
         this.publishStatus();
@@ -255,11 +300,13 @@ export class OuroborosScene extends Phaser.Scene {
     this.input.off("pointerdown", this.handlePointerDown, this);
     this.input.off("pointermove", this.handlePointerMove, this);
     this.input.keyboard?.off("keydown", this.handleKeyDown, this);
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
     document.removeEventListener(
       "visibilitychange",
       this.handleVisibilityChange,
     );
     window.removeEventListener("blur", this.handleWindowBlur);
+    this.audio.destroy();
     this.sceneView?.destroy();
     this.sceneView = null;
     this.cameraController = null;

@@ -55,6 +55,7 @@ export interface GameState {
   angle: number;
   target: Point;
   steering: boolean;
+  tutorialAutoSteer: boolean;
   bodyLength: number;
   enemies: Enemy[];
   spawnClock: number;

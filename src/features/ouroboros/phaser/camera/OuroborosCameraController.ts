@@ -2,11 +2,25 @@ import type Phaser from "phaser";
 import { WORLD_HEIGHT, WORLD_WIDTH } from "../../engine/config";
 import type { Point } from "../../engine/types";
 import { CAMERA_FOLLOW_RESPONSE } from "../config";
-import { cameraScrollTarget, smoothCameraScroll } from "./cameraMath";
+import {
+  cameraScrollTarget,
+  minimumCameraZoom,
+  smoothCameraScroll,
+} from "./cameraMath";
 
 export class OuroborosCameraController {
   constructor(private readonly camera: Phaser.Cameras.Scene2D.Camera) {
     camera.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.resize();
+  }
+
+  resize(): void {
+    this.camera.setZoom(
+      minimumCameraZoom(
+        { width: this.camera.width, height: this.camera.height },
+        { width: WORLD_WIDTH, height: WORLD_HEIGHT },
+      ),
+    );
   }
 
   snapTo(focus: Point): void {
@@ -29,6 +43,7 @@ export class OuroborosCameraController {
       focus,
       { width: this.camera.width, height: this.camera.height },
       { width: WORLD_WIDTH, height: WORLD_HEIGHT },
+      this.camera.zoom,
     );
   }
 }

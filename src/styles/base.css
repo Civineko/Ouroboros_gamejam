@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Dymon ShouXieTi";
+  src: url("/assets/ouroboros/ui/font_dymon_shouxieti.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   font-family:

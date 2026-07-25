@@ -11,6 +11,7 @@ import {
   createGameState,
   setCardinalDirection,
   snapshotHud,
+  steerToward,
   updateGame,
 } from "./gameEngine";
 
@@ -26,10 +27,11 @@ describe("game engine", () => {
     expect(game.enemies).toHaveLength(1);
     expect(game.enemies[0]?.kind).toBe("stationary");
     expect(game.enemies[0]).toMatchObject({
-      x: WORLD_WIDTH / 2 - 75,
+      x: WORLD_WIDTH / 2,
       y: WORLD_HEIGHT / 2,
     });
     expect(game.tutorialComplete).toBe(false);
+    expect(game.tutorialAutoSteer).toBe(true);
     expect(hud).toMatchObject({
       kills: 0,
       lives: 3,
@@ -41,15 +43,15 @@ describe("game engine", () => {
     const center = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
     const xCoordinates = game.trail.map((point) => point.x);
     const yCoordinates = game.trail.map((point) => point.y);
-    expect(Math.min(...xCoordinates)).toBeLessThan(center.x - 120);
-    expect(Math.max(...xCoordinates)).toBeGreaterThan(center.x + 120);
-    expect(Math.min(...yCoordinates)).toBeLessThan(center.y - 60);
-    expect(Math.max(...yCoordinates)).toBeGreaterThan(center.y + 60);
+    expect(Math.min(...xCoordinates)).toBeLessThan(center.x - 73);
+    expect(Math.max(...xCoordinates)).toBeGreaterThan(center.x + 72);
+    expect(Math.min(...yCoordinates)).toBeLessThan(center.y - 73);
+    expect(Math.max(...yCoordinates)).toBeGreaterThan(center.y + 73);
 
     const centerCrossings = game.trail.filter(
       (point) => Math.hypot(point.x - center.x, point.y - center.y) < 10,
     );
-    expect(centerCrossings.length).toBeGreaterThanOrEqual(2);
+    expect(centerCrossings).toHaveLength(0);
 
     const tail = game.trail[0];
     const head = game.trail.at(-1);
@@ -57,9 +59,31 @@ describe("game engine", () => {
     expect(head).toBeDefined();
     if (tail && head) {
       const opening = Math.hypot(head.x - tail.x, head.y - tail.y);
-      expect(opening).toBeGreaterThan(25);
-      expect(opening).toBeLessThan(40);
+      expect(opening).toBeGreaterThan(34);
+      expect(opening).toBeLessThan(37);
     }
+  });
+
+  it("automatically closes the tutorial ring when the player does nothing", () => {
+    const game = createGameState(fixedRandom);
+    const events = [];
+
+    for (let frame = 0; frame < 180 && !game.tutorialComplete; frame += 1) {
+      events.push(...updateGame(game, 1 / 60, fixedRandom));
+    }
+
+    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
+    expect(game.tutorialComplete).toBe(true);
+    expect(game.tutorialAutoSteer).toBe(false);
+  });
+
+  it("hands tutorial steering to the player after direct input", () => {
+    const game = createGameState(fixedRandom);
+
+    steerToward(game, { x: 300, y: 200 });
+
+    expect(game.tutorialAutoSteer).toBe(false);
+    expect(game.target).toEqual({ x: 300, y: 200 });
   });
 
   it("does not spawn extra enemies during the tutorial", () => {
@@ -78,12 +102,14 @@ describe("game engine", () => {
 
   it("rejects a direct reverse but accepts a perpendicular turn", () => {
     const game = createGameState(fixedRandom);
-
-    setCardinalDirection(game, "left");
-    expect(game.angle).toBe(0);
+    const initialAngle = game.angle;
 
     setCardinalDirection(game, "up");
-    expect(game.angle).toBe(-Math.PI / 2);
+    expect(game.angle).toBe(initialAngle);
+
+    setCardinalDirection(game, "right");
+    expect(game.angle).toBe(0);
+    expect(game.tutorialAutoSteer).toBe(false);
   });
 
   it("creates a deterministic stationary enemy without extra random calls", () => {
@@ -221,9 +247,9 @@ describe("game engine", () => {
     expect(events).toEqual([]);
     expect(enemy.velocityX).toBe(-30);
     expect(enemy.velocityY).toBe(-12);
-    expect(enemy.y).toBeGreaterThanOrEqual(
-      bodyPoint.y + enemy.size + BODY_WIDTH / 2,
-    );
+    expect(
+      Math.hypot(enemy.x - bodyPoint.x, enemy.y - bodyPoint.y),
+    ).toBeGreaterThanOrEqual(enemy.size + BODY_WIDTH / 2);
   });
 
   it("does not let the neck collision block an enemy approaching the head", () => {

@@ -53,7 +53,9 @@ Vue 与 Phaser 的协调层。负责创建和销毁 Phaser.Game，并将 HUD、�
 
 ### `audio/`
 
-保存与运行平台无关的音频偏好，包括总音量归一化和安全持久化。Vue 协调层把偏好转换为 Phaser Sound Manager 的实际音量；未来加入背景音乐、音效分组或桌面/Android 原生音频适配时，应继续从这一入口扩展，不把音量状态散落到组件或玩法引擎。
+保存与运行平台无关的音频偏好，包括音乐、音效两路音量的归一化、安全持久化和旧版总音量迁移。Vue 协调层把两路偏好同步给 Phaser Scene。
+
+`phaser/audio/` 保存音频目录与运行时控制器。当前控制器消费 Scene 状态和已有 `GameEvent`，使用 Web Audio 程序音作为离线占位；正式 OGG 交付后从该目录替换音源，不在组件、玩法引擎或 Scene 中散写路径和混音参数。
 
 ### `components/`
 
@@ -78,7 +80,8 @@ Vue 与 Phaser 的协调层。负责创建和销毁 Phaser.Game，并将 HUD、�
 3. Phaser 游戏循环以当前帧间隔推进引擎，并将单帧间隔限制为 `0.034s`。
 4. 引擎通过 Phaser 碰撞适配器完成圆形和多边形命中判断。
 5. 引擎返回 `hit / capture / power-up-collected / shield-blocked / game-over` 等领域事件。
-6. Scene 将 HUD 和运行状态快照同步给 Vue，并渲染最新 GameState。
+6. Scene 根据领域事件触发对应音效，并将 HUD 和运行状态快照同步给 Vue。
+7. Scene 渲染最新 GameState；暂停、结束与销毁流程同时管理音乐生命周期。
 
 ## 改动规则
 

@@ -2,25 +2,29 @@
 import { computed, onMounted, useTemplateRef } from "vue";
 import { LogOut, Pause, Play, Volume2, VolumeX } from "@lucide/vue";
 
-const { masterVolume, muted } = defineProps<{
-  masterVolume: number;
-  muted: boolean;
+const { musicVolume, effectsVolume } = defineProps<{
+  musicVolume: number;
+  effectsVolume: number;
 }>();
 
 const emit = defineEmits<{
   resume: [];
   end: [];
-  volumeChange: [volume: number];
-  toggleMute: [];
+  musicVolumeChange: [volume: number];
+  effectsVolumeChange: [volume: number];
+  toggleMusicMute: [];
+  toggleEffectsMute: [];
 }>();
 
 const resumeButton = useTemplateRef<HTMLButtonElement>("resumeButton");
-const audioMuted = computed(() => muted || masterVolume === 0);
-const volumePercent = computed(() => Math.round(masterVolume * 100));
+const musicMuted = computed(() => musicVolume === 0);
+const effectsMuted = computed(() => effectsVolume === 0);
+const musicPercent = computed(() => Math.round(musicVolume * 100));
+const effectsPercent = computed(() => Math.round(effectsVolume * 100));
 
-function handleVolumeInput(event: Event): void {
+function inputVolume(event: Event): number {
   const input = event.currentTarget as HTMLInputElement;
-  emit("volumeChange", input.valueAsNumber);
+  return input.valueAsNumber;
 }
 
 function handleDialogKeydown(event: KeyboardEvent): void {
@@ -53,34 +57,67 @@ onMounted(() => {
       </div>
     </header>
 
-    <div class="volume-setting">
-      <div class="setting-label">
-        <label for="master-volume">总音量</label>
-        <output for="master-volume">{{ volumePercent }}%</output>
+    <div class="audio-settings">
+      <div class="volume-setting">
+        <div class="setting-label">
+          <label for="music-volume">音乐音量</label>
+          <output for="music-volume">{{ musicPercent }}%</output>
+        </div>
+        <div class="volume-control">
+          <button
+            type="button"
+            class="mute-command"
+            :aria-label="musicMuted ? '开启音乐' : '关闭音乐'"
+            :title="musicMuted ? '开启音乐' : '关闭音乐'"
+            :aria-pressed="musicMuted"
+            @click="emit('toggleMusicMute')"
+          >
+            <VolumeX v-if="musicMuted" :size="21" aria-hidden="true" />
+            <Volume2 v-else :size="21" aria-hidden="true" />
+          </button>
+          <input
+            id="music-volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            :value="musicVolume"
+            aria-label="音乐音量"
+            @input="emit('musicVolumeChange', inputVolume($event))"
+            @keydown.stop="handleDialogKeydown"
+          />
+        </div>
       </div>
-      <div class="volume-control">
-        <button
-          type="button"
-          class="mute-command"
-          :aria-label="audioMuted ? '取消静音' : '静音'"
-          :title="audioMuted ? '取消静音' : '静音'"
-          :aria-pressed="audioMuted"
-          @click="emit('toggleMute')"
-        >
-          <VolumeX v-if="audioMuted" :size="21" aria-hidden="true" />
-          <Volume2 v-else :size="21" aria-hidden="true" />
-        </button>
-        <input
-          id="master-volume"
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          :value="masterVolume"
-          aria-label="总音量"
-          @input="handleVolumeInput"
-          @keydown.stop="handleDialogKeydown"
-        />
+
+      <div class="volume-setting">
+        <div class="setting-label">
+          <label for="effects-volume">音效音量</label>
+          <output for="effects-volume">{{ effectsPercent }}%</output>
+        </div>
+        <div class="volume-control">
+          <button
+            type="button"
+            class="mute-command"
+            :aria-label="effectsMuted ? '开启音效' : '关闭音效'"
+            :title="effectsMuted ? '开启音效' : '关闭音效'"
+            :aria-pressed="effectsMuted"
+            @click="emit('toggleEffectsMute')"
+          >
+            <VolumeX v-if="effectsMuted" :size="21" aria-hidden="true" />
+            <Volume2 v-else :size="21" aria-hidden="true" />
+          </button>
+          <input
+            id="effects-volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            :value="effectsVolume"
+            aria-label="音效音量"
+            @input="emit('effectsVolumeChange', inputVolume($event))"
+            @keydown.stop="handleDialogKeydown"
+          />
+        </div>
       </div>
     </div>
 
@@ -153,11 +190,18 @@ onMounted(() => {
   letter-spacing: 0;
 }
 
-.volume-setting {
+.audio-settings {
   margin: 20px 0;
-  padding: 17px 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+}
+
+.volume-setting {
+  padding: 14px 0;
+}
+
+.volume-setting + .volume-setting {
+  border-top: 1px solid var(--line);
 }
 
 .setting-label,
@@ -257,9 +301,12 @@ input[type="range"] {
     padding: 16px;
   }
 
-  .volume-setting {
+  .audio-settings {
     margin: 14px 0;
-    padding: 12px 0;
+  }
+
+  .volume-setting {
+    padding: 10px 0;
   }
 }
 
