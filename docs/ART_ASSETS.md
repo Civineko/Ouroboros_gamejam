@@ -25,9 +25,8 @@ public/assets/ouroboros/                       最终安装包内的运行时成
 ├── characters/enemies/                       三类敌人
 ├── environment/stage/                        场地
 ├── items/powerups/                           五种增益道具
-├── effects/                                  命中、闭环、增益和触控反馈
-├── ui/
-│   └── states/                               开始、暂停、结束状态图标
+├── effects/                                  命中、闭环与增益状态反馈
+├── ui/                                       品牌与应用图标
 └── audio/
     ├── music/                                BGM 与结束短曲
     ├── sfx/gameplay/                         受击、闭环、护盾
@@ -85,10 +84,6 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 | P1 | TODO | 命中特效 | `effects/sheet_hit_burst.png` | 单帧 `128x128`，6-8 帧横排 | `10-14fps`，首尾帧透明；敌人消失与蛇头受击共用，不改变命中时机 | 蛇头透明闪烁 |
 | P1 | TODO | 通用增益拾取特效 | `effects/sheet_powerup_collect.png` | 单帧 `64x64`，6 帧横排 | `12-16fps`，单色可着色，五种道具按定义颜色复用 | 当前仅让场上道具直接消失 |
 | P1 | TODO | 增益激活光环 | `effects/fx_buff_aura.png` | `96x96` 透明 PNG | 单色可着色；护环常驻，疾行/共鸣短暂强调；凝滞仍以敌人色调反馈 | HUD 有倒计时，场内缺少持续状态反馈 |
-| P1 | TODO | 触控转向反馈 | `effects/fx_touch_steer.png` | `64x64` 透明 PNG | 可着色、中心锚点；点击/拖动时短暂缩放淡出，不进入世界碰撞 | 当前触控转向无可见反馈 |
-| P1 | TODO | 开始状态图标 | `ui/states/icon_state_start.svg` | `64x64` SVG | 替换开始覆盖层图标，轮廓需表达首尾相接 | Lucide `CircleDotDashed` |
-| P1 | TODO | 暂停状态图标 | `ui/states/icon_state_pause.svg` | `64x64` SVG | 替换暂停覆盖层图标，适配深色遮罩 | Lucide `Pause` |
-| P1 | TODO | 结束状态图标 | `ui/states/icon_state_game_over.svg` | `64x64` SVG | 替换结束覆盖层图标，表达环断开，不增加新叙事 | Lucide `CircleDotDashed` 变色 |
 | P2 | TODO | 品牌标志 | `ui/brand_mark.svg` | 正方形 SVG | 适配浅色背景和高 DPI，轮廓清晰 | Lucide `CircleDotDashed` |
 | P2 | TODO | favicon | `ui/favicon.svg` | `64x64` SVG | Windows 窗口和浏览器 `16px` 下可辨识 | 当前临时衔尾蛇图标 |
 
@@ -99,7 +94,15 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 - 回生是即时效果，只播放拾取特效和血量恢复反馈，不制作常驻状态图。
 - 凝滞通过移动敌人的统一降速色调/透明度表现，不需要额外逐敌人贴图。
 - 疾行与共鸣可复用 `fx_buff_aura.png` 的不同颜色和短暂缩放；倒计时仍由 Vue HUD 表示。
+- 护环抵消伤害时复用 `fx_buff_aura.png` 的破裂缩放与 `sheet_hit_burst.png` 的着色版本，不增加单独贴图。
 - 增益到期闪烁、场上道具脉冲、闭环范围和受击无敌闪烁继续由程序控制，不烘焙成多份图片。
+
+### 不需要单独制作的美术
+
+- 开始、暂停、继续、重开和结束状态继续使用现有 Lucide 图标与 CSS 覆盖层；除非整体 UI 重新定稿，否则不制作重复 SVG。
+- 点击/拖动转向反馈使用 Phaser 圆环、缩放和淡出绘制，不新增透明 PNG。
+- 教学完成复用闭环净化反馈，空环复用程序绘制的闭环闪光，不为同一动作制作第二套图片。
+- 场上道具脉冲、到期闪烁、蛇头无敌闪烁和敌人碰撞分离均由程序控制。
 
 ## 音频规格
 
@@ -193,8 +196,8 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 ### P1 状态反馈
 
 - [ ] 输出五种增益图标；在 `24px` 显示尺寸下仍能凭剪影区分，并同时供场上道具与 HUD 使用。
-- [ ] 输出闭环粒子、命中特效、通用增益拾取、增益光环和触控反馈。
-- [ ] 输出开始、暂停、结束三枚状态图标，不增加新的玩法或叙事内容。
+- [ ] 输出闭环粒子、命中特效、通用增益拾取和增益光环。
+- [ ] 开发用 Phaser 补齐触控转向反馈，并继续复用现有 Lucide 状态图标。
 - [ ] 交付空环、护环抵消和五种增益拾取音。
 - [ ] 验证触控反馈不遮住蛇头，增益光环不改变碰撞体积，特效不遮挡闭环边界。
 - [ ] 验证暂停、后台、恢复和重开不会重复创建 BGM 实例。
@@ -204,6 +207,12 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 - [ ] 替换品牌标志与临时 favicon。
 - [ ] 评估生命、净化等 HUD 图标是否继续使用 Lucide；只有确需定制时再按 `ui/icon_*.svg` 登记，避免装饰性膨胀。
 - [ ] 主循环完成并验证后，再决定是否制作第二条同调性 BGM。
+
+### P3 Boss 预留
+
+- [ ] Boss 玩法确定后再补充本体、攻击预警、受击和死亡动画规格；当前不提前制作素材。
+- [ ] Boss 与普通敌人共用朝右、中心锚点约定，但使用独立 atlas，不塞入普通敌人图片。
+- [ ] Boss 场地装饰不得伪装成地图碰撞边界；Boss 音频只在事件接口确定后登记。
 
 ## 接入与清理流程
 
