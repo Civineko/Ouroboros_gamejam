@@ -16,13 +16,27 @@ describe("game engine", () => {
     const hud = snapshotHud(game);
 
     expect(game.trail).toHaveLength(54);
-    expect(game.enemies).toHaveLength(3);
-    expect(game.enemies.map((enemy) => enemy.kind)).toEqual([
-      "stationary",
-      "stationary",
-      "stationary",
-    ]);
-    expect(hud).toMatchObject({ kills: 0, lives: 3, level: 1, enemyLimit: 4 });
+    expect(game.enemies).toHaveLength(1);
+    expect(game.enemies[0]?.kind).toBe("stationary");
+    expect(game.tutorialComplete).toBe(false);
+    expect(hud).toMatchObject({
+      kills: 0,
+      lives: 3,
+      level: 1,
+      enemyLimit: 4,
+      message: "首尾相接，圈住敌人",
+    });
+  });
+
+  it("does not spawn extra enemies during the tutorial", () => {
+    const game = createGameState(fixedRandom);
+
+    game.spawnClock = 99;
+    updateGame(game, 0, fixedRandom);
+
+    expect(game.enemies).toHaveLength(1);
+    expect(game.enemies[0]?.kind).toBe("stationary");
+    expect(game.spawnClock).toBe(0);
   });
 
   it("rejects a direct reverse but accepts a perpendicular turn", () => {
@@ -190,6 +204,38 @@ describe("game engine", () => {
     expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
     expect(game.enemies).toHaveLength(0);
     expect(game.bodyLength).toBe(1031);
+  });
+
+  it("finishes the tutorial after the first captured enemy", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 400 + Math.cos(angle) * 100,
+        y: 300 + Math.sin(angle) * 100,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.enemies = [
+      {
+        ...createEnemy(0, 0, fixedRandom),
+        x: 400,
+        y: 300,
+      },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
+    expect(game.tutorialComplete).toBe(true);
+    expect(game.message).toBe("正式开始，三角敌人会追踪蛇头！");
+
+    game.spawnClock = 99;
+    updateGame(game, 0, fixedRandom);
+
+    expect(game.enemies).toHaveLength(1);
+    expect(game.enemies[0]?.kind).toBe("tracker");
   });
 
   it("still resolves a closed ring during the fatal update", () => {

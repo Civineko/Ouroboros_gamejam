@@ -7,11 +7,7 @@ import {
   WORLD_WIDTH,
 } from "../config";
 import type { Enemy, Point, RandomSource } from "../types";
-import {
-  TRACKER_UNLOCK_LENGTH,
-  WANDERER_UNLOCK_LENGTH,
-  planEnemySpawn,
-} from "./enemySpawn";
+import { planEnemySpawn } from "./enemySpawn";
 
 const MAX_ENEMY_RADIUS = 17;
 const SAFETY_GAP = 20;
@@ -107,24 +103,20 @@ function expectSafePosition(
 }
 
 describe("enemy spawn planning", () => {
-  it("only plans stationary enemies before the wanderer unlock", () => {
-    expect(WANDERER_UNLOCK_LENGTH).toBeGreaterThan(INITIAL_BODY_LENGTH);
-
-    const bodyLengths = [INITIAL_BODY_LENGTH, WANDERER_UNLOCK_LENGTH - 1];
+  it("only plans stationary enemies during the tutorial", () => {
     const randomValues = [0, 0.2, 0.5, 0.8, 0.999];
 
-    for (const bodyLength of bodyLengths) {
-      for (const randomValue of randomValues) {
-        const plan = planEnemySpawn({
-          id: 0,
-          bodyLength,
-          trail: openTrail,
-          enemies: [],
-          random: constantRandom(randomValue),
-        });
+    for (const randomValue of randomValues) {
+      const plan = planEnemySpawn({
+        id: 0,
+        bodyLength: INITIAL_BODY_LENGTH,
+        trail: openTrail,
+        enemies: [],
+        random: constantRandom(randomValue),
+        tutorial: true,
+      });
 
-        expect(plan.kind).toBe("stationary");
-      }
+      expect(plan.kind).toBe("stationary");
     }
   });
 
@@ -140,6 +132,7 @@ describe("enemy spawn planning", () => {
         trail: openTrail,
         enemies: [],
         random: constantRandom(randomValue),
+        tutorial: true,
       });
 
       expect(Math.abs(plan.position.x - head.x)).toBeLessThanOrEqual(380);
@@ -147,49 +140,52 @@ describe("enemy spawn planning", () => {
     }
   });
 
-  it("unlocks wanderers in the middle stage but never plans trackers", () => {
-    expect(TRACKER_UNLOCK_LENGTH).toBeGreaterThan(WANDERER_UNLOCK_LENGTH);
-    const bodyLength =
-      WANDERER_UNLOCK_LENGTH +
-      (TRACKER_UNLOCK_LENGTH - WANDERER_UNLOCK_LENGTH) / 2;
-    const kinds = new Set(
-      [0, 0.2, 0.5, 0.8, 0.999].flatMap((randomValue) =>
-        Array.from({ length: 6 }, (_, id) =>
-          planEnemySpawn({
-            id,
-            bodyLength,
-            trail: openTrail,
-            enemies: [],
-            random: constantRandom(randomValue),
-          }).kind,
-        ),
-      ),
-    );
+  it("places the first tutorial enemy beside the snake", () => {
+    const head = openTrail.at(-1);
+    expect(head).toBeDefined();
+    if (!head) return;
 
-    expect(kinds).toContain("wanderer");
-    expect(kinds).not.toContain("tracker");
+    const plan = planEnemySpawn({
+      id: 0,
+      bodyLength: INITIAL_BODY_LENGTH,
+      trail: openTrail,
+      enemies: [],
+      random: constantRandom(0.5),
+      tutorial: true,
+    });
+
+    expect(plan.position).toEqual({
+      x: head.x - 160,
+      y: head.y - 145,
+    });
+    expectSafePosition(plan.position, openTrail, []);
   });
 
-  it("can plan trackers after the tracker unlock", () => {
-    const kinds = new Set(
-      [0, 0.2, 0.5, 0.8, 0.999].flatMap((randomValue) =>
-        Array.from({ length: 9 }, (_, id) =>
-          planEnemySpawn({
-            id,
-            bodyLength: TRACKER_UNLOCK_LENGTH + 1,
-            trail: openTrail,
-            enemies: [],
-            random: constantRandom(randomValue),
-          }).kind,
-        ),
-      ),
-    );
+  it("uses tracker-heavy official spawn weights", () => {
+    const cases = [
+      [0, "stationary"],
+      [0.099, "stationary"],
+      [0.1, "wanderer"],
+      [0.199, "wanderer"],
+      [0.2, "tracker"],
+      [0.999, "tracker"],
+    ] as const;
 
-    expect(kinds).toContain("tracker");
+    for (const [randomValue, expectedKind] of cases) {
+      const plan = planEnemySpawn({
+        id: 0,
+        bodyLength: INITIAL_BODY_LENGTH,
+        trail: openTrail,
+        enemies: [],
+        random: constantRandom(randomValue),
+      });
+
+      expect(plan.kind).toBe(expectedKind);
+    }
   });
 
   it("keeps stationary spawn points inside the world rather than on an edge", () => {
-    for (const randomValue of [0, 0.5, 0.999]) {
+    for (const randomValue of [0, 0.05, 0.099]) {
       const plan = planEnemySpawn({
         id: 0,
         bodyLength: INITIAL_BODY_LENGTH,
@@ -212,7 +208,7 @@ describe("enemy spawn planning", () => {
     for (const randomValue of [0.1, 0.35, 0.6, 0.85]) {
       const plan = planEnemySpawn({
         id: 12,
-        bodyLength: TRACKER_UNLOCK_LENGTH + 1,
+        bodyLength: INITIAL_BODY_LENGTH,
         trail: openTrail,
         enemies,
         random: constantRandom(randomValue),
@@ -226,7 +222,7 @@ describe("enemy spawn planning", () => {
     const enemies = [enemyAt(20, WORLD_WIDTH / 2, WORLD_HEIGHT / 2)];
     const plan = planEnemySpawn({
       id: 21,
-      bodyLength: TRACKER_UNLOCK_LENGTH + 1,
+      bodyLength: INITIAL_BODY_LENGTH,
       trail: openTrail,
       enemies,
       random: constantRandom(0.5),

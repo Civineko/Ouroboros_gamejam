@@ -1,5 +1,4 @@
 import {
-  INITIAL_BODY_LENGTH,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "../config";
@@ -10,15 +9,13 @@ import type {
   RandomSource,
 } from "../types";
 
-export const WANDERER_UNLOCK_LENGTH = INITIAL_BODY_LENGTH + 3 * 31;
-export const TRACKER_UNLOCK_LENGTH = INITIAL_BODY_LENGTH + 7 * 31;
-
 export interface EnemySpawnContext {
   id: number;
   bodyLength: number;
   trail: readonly Point[];
   enemies: readonly Enemy[];
   random: RandomSource;
+  tutorial?: boolean;
 }
 
 export interface EnemySpawnPlan {
@@ -36,6 +33,12 @@ const RANDOM_ATTEMPTS = 24;
 const FALLBACK_GRID_SPACING = 48;
 const TUTORIAL_RADIUS_X = 380;
 const TUTORIAL_RADIUS_Y = 240;
+const TUTORIAL_OFFSETS: readonly Point[] = [
+  { x: -160, y: -145 },
+  { x: -160, y: 145 },
+  { x: -245, y: -120 },
+  { x: -245, y: 120 },
+];
 
 interface SpawnBounds {
   minimumX: number;
@@ -50,16 +53,10 @@ function sampleUnit(random: RandomSource): number {
   return Math.max(0, Math.min(1 - Number.EPSILON, value));
 }
 
-function chooseKind(bodyLength: number, random: RandomSource): EnemyKind {
-  if (bodyLength < WANDERER_UNLOCK_LENGTH) return "stationary";
-
+function chooseKind(random: RandomSource): EnemyKind {
   const roll = sampleUnit(random);
-  if (bodyLength < TRACKER_UNLOCK_LENGTH) {
-    return roll < 0.65 ? "stationary" : "wanderer";
-  }
-
-  if (roll < 0.45) return "stationary";
-  if (roll < 0.8) return "wanderer";
+  if (roll < 0.1) return "stationary";
+  if (roll < 0.2) return "wanderer";
   return "tracker";
 }
 
@@ -170,6 +167,13 @@ function tutorialBounds(margin: number, head: Point): SpawnBounds {
   };
 }
 
+function clampToBounds(point: Point, bounds: SpawnBounds): Point {
+  return {
+    x: Math.max(bounds.minimumX, Math.min(bounds.maximumX, point.x)),
+    y: Math.max(bounds.minimumY, Math.min(bounds.maximumY, point.y)),
+  };
+}
+
 function randomPosition(bounds: SpawnBounds, random: RandomSource): Point {
   return {
     x:
@@ -221,15 +225,51 @@ function fallbackPosition(
   return best;
 }
 
+function tutorialPosition(
+  id: number,
+  margin: number,
+  bounds: SpawnBounds,
+  trail: readonly Point[],
+  enemies: readonly Enemy[],
+): Point {
+  const head = trail.at(-1);
+  if (!head) {
+    return fallbackPosition(id, margin, bounds, trail, enemies);
+  }
+
+  for (const offset of TUTORIAL_OFFSETS) {
+    const candidate = clampToBounds(
+      { x: head.x + offset.x, y: head.y + offset.y },
+      bounds,
+    );
+    if (clearanceScore(candidate, margin, trail, enemies) >= 0) return candidate;
+  }
+
+  return fallbackPosition(id, margin, bounds, trail, enemies);
+}
+
 export function planEnemySpawn(context: EnemySpawnContext): EnemySpawnPlan {
-  const kind = chooseKind(context.bodyLength, context.random);
+  const kind = context.tutorial ? "stationary" : chooseKind(context.random);
   const margin =
     kind === "stationary" ? STATIONARY_WORLD_MARGIN : MOVING_WORLD_MARGIN;
   const head = context.trail.at(-1);
   const bounds =
-    context.bodyLength < WANDERER_UNLOCK_LENGTH && head
+    context.tutorial && head
       ? tutorialBounds(margin, head)
       : worldBounds(margin);
+
+  if (context.tutorial) {
+    return {
+      kind,
+      position: tutorialPosition(
+        context.id,
+        margin,
+        bounds,
+        context.trail,
+        context.enemies,
+      ),
+    };
+  }
 
   for (let attempt = 0; attempt < RANDOM_ATTEMPTS; attempt += 1) {
     const candidate = randomPosition(bounds, context.random);
