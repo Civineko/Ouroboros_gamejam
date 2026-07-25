@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BODY_WIDTH, WORLD_HEIGHT } from "./config";
 import {
   createEnemy,
   createGameState,
@@ -18,8 +19,8 @@ describe("game engine", () => {
     expect(game.enemies).toHaveLength(3);
     expect(game.enemies.map((enemy) => enemy.kind)).toEqual([
       "stationary",
-      "wanderer",
-      "tracker",
+      "stationary",
+      "stationary",
     ]);
     expect(hud).toMatchObject({ kills: 0, lives: 3, level: 1, enemyLimit: 4 });
   });
@@ -42,7 +43,7 @@ describe("game engine", () => {
     expect(calls).toBe(5);
     expect(enemy).toMatchObject({
       x: 28,
-      y: 169,
+      y: 28 + 0.25 * (WORLD_HEIGHT - 56),
       kind: "stationary",
       speed: 0,
       size: 15.75,
@@ -57,19 +58,112 @@ describe("game engine", () => {
     expect(head).toBeDefined();
     if (!head) return;
 
-    game.enemies = [
-      {
-        ...createEnemy(10, 0, fixedRandom),
-        x: head.x,
-        y: head.y,
-      },
-    ];
+    const enemy = {
+      ...createEnemy(10, 0, fixedRandom),
+      x: head.x,
+      y: head.y,
+      velocityX: 40,
+      velocityY: 12,
+    };
+    game.enemies = [enemy];
     game.invulnerable = 0;
 
     const events = updateGame(game, 1 / 60, fixedRandom);
 
     expect(events).toContainEqual({ type: "hit", lives: 2 });
     expect(game.lives).toBe(2);
+    expect(game.enemies).not.toContain(enemy);
+  });
+
+  it("removes a head collision during invulnerability without losing life", () => {
+    const game = createGameState(fixedRandom);
+    const head = game.trail.at(-1);
+    expect(head).toBeDefined();
+    if (!head) return;
+
+    const enemy = {
+      ...createEnemy(10, 0, fixedRandom),
+      x: head.x,
+      y: head.y,
+    };
+    game.enemies = [enemy];
+    game.invulnerable = 1;
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(events).toEqual([]);
+    expect(game.lives).toBe(3);
+    expect(game.enemies).not.toContain(enemy);
+  });
+
+  it("reverses and separates an enemy that touches the snake body", () => {
+    const game = createGameState(fixedRandom);
+    const bodyPoint = game.trail[12];
+    expect(bodyPoint).toBeDefined();
+    if (!bodyPoint) return;
+
+    const enemy = {
+      ...createEnemy(1, 0, fixedRandom),
+      x: bodyPoint.x,
+      y: bodyPoint.y + 5,
+      velocityX: 30,
+      velocityY: 12,
+      heading: Math.atan2(12, 30),
+    };
+    game.enemies = [enemy];
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(events).toEqual([]);
+    expect(enemy.velocityX).toBe(-30);
+    expect(enemy.velocityY).toBe(-12);
+    expect(enemy.y).toBeGreaterThanOrEqual(
+      bodyPoint.y + enemy.size + BODY_WIDTH / 2,
+    );
+  });
+
+  it("does not let the neck collision block an enemy approaching the head", () => {
+    const game = createGameState(fixedRandom);
+    const head = game.trail.at(-1);
+    expect(head).toBeDefined();
+    if (!head) return;
+
+    const enemy = {
+      ...createEnemy(1, 0, fixedRandom),
+      x: head.x - 32,
+      y: head.y,
+      velocityX: 30,
+      velocityY: 0,
+      heading: 0,
+    };
+    game.enemies = [enemy];
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(events).toEqual([]);
+    expect(game.enemies).toContain(enemy);
+    expect(enemy.velocityX).toBe(30);
+    expect(enemy.collisionRecovery).toBe(0);
+  });
+
+  it("pushes a stationary enemy out without giving it velocity", () => {
+    const game = createGameState(fixedRandom);
+    const bodyPoint = game.trail[12];
+    expect(bodyPoint).toBeDefined();
+    if (!bodyPoint) return;
+
+    const enemy = {
+      ...createEnemy(0, 0, fixedRandom),
+      x: bodyPoint.x,
+      y: bodyPoint.y,
+    };
+    game.enemies = [enemy];
+
+    updateGame(game, 0, fixedRandom);
+
+    expect(enemy.velocityX).toBe(0);
+    expect(enemy.velocityY).toBe(0);
+    expect(enemy.y).toBeGreaterThan(bodyPoint.y);
   });
 
   it("captures enemies inside a valid closed ring", () => {

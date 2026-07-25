@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { BODY_WIDTH, HEAD_RADIUS, TAIL_RADIUS, WORLD_HEIGHT, WORLD_WIDTH } from "../engine/config";
 import type { Enemy, GameState, Point } from "../engine/types";
-import { paintEnemyIcon } from "./enemies/enemyIconPainters";
+import { paintEnemyIcon } from "./assets/placeholders/enemyIconPainters";
 
 const COLORS = {
   stage: 0x48678f,

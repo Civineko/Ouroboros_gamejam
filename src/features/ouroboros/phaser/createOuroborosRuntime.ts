@@ -1,10 +1,10 @@
 import Phaser from "phaser";
-import { WORLD_HEIGHT, WORLD_WIDTH } from "../engine/config";
 import type { GameState } from "../engine/types";
 import {
   OuroborosScene,
   type OuroborosSceneCallbacks,
 } from "./OuroborosScene";
+import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from "./config";
 
 export interface OuroborosRuntime {
   game: Phaser.Game;
@@ -20,16 +20,16 @@ export function createOuroborosRuntime(
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent,
-    width: WORLD_WIDTH,
-    height: WORLD_HEIGHT,
+    width: VIEWPORT_WIDTH,
+    height: VIEWPORT_HEIGHT,
     backgroundColor: "#48678f",
     transparent: false,
     scene,
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: WORLD_WIDTH,
-      height: WORLD_HEIGHT,
+      width: VIEWPORT_WIDTH,
+      height: VIEWPORT_HEIGHT,
     },
     input: {
       keyboard: true,

@@ -1,5 +1,5 @@
-export const WORLD_WIDTH = 920;
-export const WORLD_HEIGHT = 620;
+export const WORLD_WIDTH = 1440;
+export const WORLD_HEIGHT = 900;
 export const MAX_FRAME_DELTA = 0.034;
 export const INITIAL_BODY_LENGTH = 245 * 1.5;
 export const INITIAL_BODY_POINTS = 54;

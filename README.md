@@ -26,6 +26,8 @@ npm run build
 ## 目录
 
 ```text
+public/
+└── assets/ouroboros/             # 游戏运行时美术成品
 src/
 ├── app/                         # 应用入口，只负责装配
 ├── features/ouroboros/
@@ -33,13 +35,15 @@ src/
 │   ├── composables/             # Vue 与 Phaser 生命周期协调
 │   ├── engine/                  # 纯 TypeScript 玩法规则
 │   ├── input/                   # 键盘到语义动作的映射
-│   └── phaser/                  # Scene、渲染、输入与碰撞适配
+│   └── phaser/                  # Scene、渲染、碰撞与资源清单
 ├── shared/
 │   └── components/              # 与玩法无关的基础组件
 └── styles/                      # 全局令牌与基础样式
 ```
 
 更详细的依赖方向和分工约定见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+
+美工交付路径、尺寸规范和待替换资源清单见 [docs/ART_ASSETS.md](docs/ART_ASSETS.md)。
 
 ## 操作
 
