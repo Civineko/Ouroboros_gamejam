@@ -1,77 +1,132 @@
 import Phaser from "phaser";
 import {
   BODY_WIDTH,
-  HEAD_RADIUS,
   levelColor,
-  TAIL_RADIUS,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "../engine/config";
 import type { Enemy, GameState, Point, PowerUp } from "../engine/types";
-import { paintEnemyIcon } from "./assets/placeholders/enemyIconPainters";
-import { paintPowerUpIcon } from "./assets/placeholders/powerUpIconPainters";
+import { OUROBOROS_ART_KEYS } from "./assets/assetCatalog";
 
 const COLORS = {
-  stage: 0x48678f,
-  stageLine: 0xfffdf7,
-  stageBorder: 0xfffdf7,
-  ink: 0x263b42,
-  shadow: 0x192531,
-  body: 0x5c9e94,
+  body: 0x58c9a7,
+  bodyOutline: 0x101b1d,
   bodyFlash: 0xf4d872,
-  bodyHighlight: 0xffffff,
-  tail: 0xfff9ec,
-  tailCore: 0xef624f,
-  head: 0xf2ba49,
 } as const;
+
+const TAIL_END_INDEX = 12;
+const BODY_TAIL_OVERLAP = 2;
 
 interface EnemyView {
   container: Phaser.GameObjects.Container;
-  graphics: Phaser.GameObjects.Graphics;
+  image: Phaser.GameObjects.Image;
 }
 
 interface PowerUpView {
   container: Phaser.GameObjects.Container;
-  graphics: Phaser.GameObjects.Graphics;
+  image: Phaser.GameObjects.Image;
+}
+
+function enemyTexture(enemy: Enemy): string {
+  if (enemy.kind === "wanderer") return OUROBOROS_ART_KEYS.enemyWanderer;
+  if (enemy.kind === "tracker") return OUROBOROS_ART_KEYS.enemyTracker;
+  return OUROBOROS_ART_KEYS.enemyStationary;
+}
+
+function powerUpTexture(powerUp: PowerUp): string {
+  if (powerUp.kind === "heal") return OUROBOROS_ART_KEYS.powerUpHeal;
+  if (powerUp.kind === "stasis") return OUROBOROS_ART_KEYS.powerUpStasis;
+  if (powerUp.kind === "haste") return OUROBOROS_ART_KEYS.powerUpHaste;
+  if (powerUp.kind === "resonance") {
+    return OUROBOROS_ART_KEYS.powerUpResonance;
+  }
+  return OUROBOROS_ART_KEYS.powerUpShield;
 }
 
 function traceTrail(
   graphics: Phaser.GameObjects.Graphics,
   trail: readonly Point[],
-  offsetX = 0,
-  offsetY = 0,
 ): void {
   const first = trail[0];
   if (!first) return;
 
   graphics.beginPath();
-  graphics.moveTo(first.x + offsetX, first.y + offsetY);
+  graphics.moveTo(first.x, first.y);
   for (let index = 1; index < trail.length; index += 1) {
     const point = trail[index];
-    if (point) graphics.lineTo(point.x + offsetX, point.y + offsetY);
+    if (point) graphics.lineTo(point.x, point.y);
   }
   graphics.strokePath();
 }
 
 export class OuroborosSceneView {
-  private readonly background: Phaser.GameObjects.Graphics;
+  private readonly background: Phaser.GameObjects.TileSprite;
   private readonly ring: Phaser.GameObjects.Graphics;
-  private readonly body: Phaser.GameObjects.Graphics;
-  private readonly head: Phaser.GameObjects.Graphics;
+  private readonly body: Phaser.GameObjects.Container;
+  private readonly tailRope: Phaser.GameObjects.Rope;
+  private readonly bodyRope: Phaser.GameObjects.Rope;
+  private readonly bodyFallback: Phaser.GameObjects.Graphics;
+  private readonly head: Phaser.GameObjects.Image;
+  private readonly headScaleX: number;
+  private readonly headScaleY: number;
+  private readonly supportsRope: boolean;
   private readonly enemies = new Map<number, EnemyView>();
   private readonly powerUps = new Map<number, PowerUpView>();
   private introRevealing = false;
   private currentLevel = 1;
-  private bgColor: number = COLORS.stage;
+  private bgColor = parseInt(levelColor(1).slice(1), 16);
 
   constructor(private readonly scene: Phaser.Scene) {
-    this.background = scene.add.graphics().setDepth(0);
+    this.background = scene.add
+      .tileSprite(
+        0,
+        0,
+        WORLD_WIDTH,
+        WORLD_HEIGHT,
+        OUROBOROS_ART_KEYS.stageBackground,
+      )
+      .setOrigin(0)
+      .setTileScale(0.75)
+      .setDepth(0);
+    this.redrawBackground();
     this.ring = scene.add.graphics().setDepth(1);
-    this.body = scene.add.graphics().setDepth(3);
-    this.head = scene.add.graphics().setDepth(4);
+    this.body = scene.add.container(0, 0).setDepth(3);
 
-    this.drawBackground(COLORS.stage);
-    this.drawHead();
+    const initialRopePoints = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+    ];
+    this.tailRope = scene.add.rope(
+      0,
+      0,
+      OUROBOROS_ART_KEYS.snakeTail,
+      undefined,
+      initialRopePoints,
+      true,
+    );
+    this.bodyRope = scene.add.rope(
+      0,
+      0,
+      OUROBOROS_ART_KEYS.snakeBody,
+      undefined,
+      initialRopePoints,
+      true,
+    );
+    this.bodyFallback = scene.add.graphics();
+    this.body.add([this.tailRope, this.bodyRope, this.bodyFallback]);
+
+    this.supportsRope = scene.game.renderer.type === Phaser.WEBGL;
+    this.tailRope.setVisible(this.supportsRope);
+    this.bodyRope.setVisible(this.supportsRope);
+    this.bodyFallback.setVisible(!this.supportsRope);
+
+    this.head = scene.add
+      .image(0, 0, OUROBOROS_ART_KEYS.snakeHead)
+      .setDisplaySize(58, 38)
+      .setOrigin(0.42, 0.5)
+      .setDepth(4);
+    this.headScaleX = this.head.scaleX;
+    this.headScaleY = this.head.scaleY;
   }
 
   render(game: GameState): void {
@@ -90,8 +145,7 @@ export class OuroborosSceneView {
 
     const head = game.trail.at(-1);
     if (head) {
-      this.head.setPosition(head.x, head.y);
-      this.head.setRotation(game.angle);
+      this.head.setPosition(head.x, head.y).setRotation(game.angle);
       if (!this.introRevealing) {
         this.head.setAlpha(
           game.invulnerable > 0 && Math.floor(game.invulnerable * 12) % 2 === 0
@@ -115,7 +169,9 @@ export class OuroborosSceneView {
       .setAlpha(0)
       .setScale(0.78)
       .setPosition(centerX * 0.22, centerY * 0.22);
-    this.head.setAlpha(0).setScale(0.24);
+    this.head
+      .setAlpha(0)
+      .setScale(this.headScaleX * 0.24, this.headScaleY * 0.24);
 
     for (const view of this.enemies.values()) {
       view.container.setAlpha(0).setScale(0.18);
@@ -145,8 +201,8 @@ export class OuroborosSceneView {
     this.scene.tweens.add({
       targets: this.head,
       alpha: 1,
-      scaleX: 1,
-      scaleY: 1,
+      scaleX: this.headScaleX,
+      scaleY: this.headScaleY,
       delay: 600,
       duration: 500,
       ease: "Back.Out",
@@ -177,7 +233,7 @@ export class OuroborosSceneView {
 
     this.background.setAlpha(1).setScale(1).setPosition(0, 0);
     this.body.setAlpha(1).setScale(1).setPosition(0, 0);
-    this.head.setAlpha(1).setScale(1);
+    this.head.setAlpha(1).setScale(this.headScaleX, this.headScaleY);
 
     for (const view of this.enemies.values()) {
       this.scene.tweens.killTweensOf(view.container);
@@ -185,10 +241,9 @@ export class OuroborosSceneView {
     }
   }
 
-  /** 清除并重绘背景（世界尺寸或关卡变化后调用） */
+  /** Reapply the current level tint after a level or renderer refresh. */
   redrawBackground(): void {
-    this.background.clear();
-    this.drawBackground(this.bgColor);
+    this.background.setTint(this.bgColor);
   }
 
   destroy(): void {
@@ -196,22 +251,6 @@ export class OuroborosSceneView {
     this.enemies.clear();
     for (const view of this.powerUps.values()) view.container.destroy(true);
     this.powerUps.clear();
-  }
-
-  private drawBackground(color: number = COLORS.stage): void {
-    this.background.fillStyle(color, 1);
-    this.background.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.background.lineStyle(1, COLORS.stageLine, 0.1);
-
-    for (let x = 40; x < WORLD_WIDTH; x += 40) {
-      this.background.lineBetween(x, 0, x, WORLD_HEIGHT);
-    }
-    for (let y = 40; y < WORLD_HEIGHT; y += 40) {
-      this.background.lineBetween(0, y, WORLD_WIDTH, y);
-    }
-
-    this.background.lineStyle(1, COLORS.stageBorder, 0.2);
-    this.background.strokeRect(12, 12, WORLD_WIDTH - 24, WORLD_HEIGHT - 24);
   }
 
   private drawRing(game: GameState): void {
@@ -235,44 +274,22 @@ export class OuroborosSceneView {
   }
 
   private drawBody(game: GameState): void {
-    this.body.clear();
     if (game.trail.length < 2) return;
 
-    this.body.lineStyle(BODY_WIDTH + 3, COLORS.shadow, 0.23);
-    traceTrail(this.body, game.trail, 6, 7);
+    const tailEnd = Math.min(TAIL_END_INDEX, game.trail.length - 1);
+    const bodyStart = Math.max(0, tailEnd - BODY_TAIL_OVERLAP);
 
-    this.body.lineStyle(
-      BODY_WIDTH,
-      game.closureFlash > 0 ? COLORS.bodyFlash : COLORS.body,
-      1,
-    );
-    traceTrail(this.body, game.trail);
+    if (this.supportsRope) {
+      this.tailRope.setPoints(game.trail.slice(0, tailEnd + 1));
+      this.bodyRope.setPoints(game.trail.slice(bodyStart));
+      return;
+    }
 
-    this.body.lineStyle(5, COLORS.bodyHighlight, 0.22);
-    traceTrail(this.body, game.trail, -1, -2);
-
-    const tail = game.trail[0];
-    if (!tail) return;
-
-    this.body.fillStyle(COLORS.shadow, 0.18);
-    this.body.fillCircle(tail.x + 5, tail.y + 6, TAIL_RADIUS + 1);
-    this.body.fillStyle(COLORS.tail, 1);
-    this.body.fillCircle(tail.x, tail.y, TAIL_RADIUS);
-    this.body.fillStyle(COLORS.tailCore, 1);
-    this.body.fillCircle(tail.x, tail.y, 6);
-  }
-
-  private drawHead(): void {
-    this.head.fillStyle(COLORS.shadow, 0.22);
-    this.head.fillCircle(5, 6, HEAD_RADIUS);
-    this.head.fillStyle(COLORS.head, 1);
-    this.head.fillCircle(0, 0, HEAD_RADIUS);
-    this.head.fillStyle(COLORS.ink, 1);
-    this.head.fillCircle(7, -6, 2.5);
-    this.head.fillCircle(7, 6, 2.5);
-    this.head.lineStyle(2, COLORS.ink, 1);
-    this.head.lineBetween(13, 0, 22, -4);
-    this.head.lineBetween(13, 0, 22, 4);
+    this.bodyFallback.clear();
+    this.bodyFallback.lineStyle(BODY_WIDTH + 5, COLORS.bodyOutline, 1);
+    traceTrail(this.bodyFallback, game.trail);
+    this.bodyFallback.lineStyle(BODY_WIDTH, COLORS.body, 1);
+    traceTrail(this.bodyFallback, game.trail);
   }
 
   private syncEnemies(game: GameState): void {
@@ -287,24 +304,28 @@ export class OuroborosSceneView {
     for (const enemy of game.enemies) {
       const view = this.enemies.get(enemy.id) ?? this.createEnemyView(enemy);
       const pulse = Math.sin(game.elapsed * 3.4 + enemy.phase) * 1.5;
-      const size = enemy.size + pulse;
+      const size = (enemy.size + pulse) * 4.2;
       const movementAngle = Math.atan2(enemy.velocityY, enemy.velocityX);
 
-      view.container.setPosition(enemy.x, enemy.y);
-      view.container.setRotation(
-        enemy.kind === "stationary" ? 0 : movementAngle,
-      );
-      view.graphics.clear();
-      paintEnemyIcon({ graphics: view.graphics, enemy, size });
+      view.container
+        .setPosition(enemy.x, enemy.y)
+        .setRotation(enemy.kind === "stationary" ? 0 : movementAngle);
+      if (enemy.kind === "stationary") {
+        view.image.setDisplaySize(size, size);
+      } else if (enemy.kind === "wanderer") {
+        view.image.setDisplaySize(size * 1.2, size * 0.86);
+      } else {
+        view.image.setDisplaySize(size * 1.25, size * 0.78);
+      }
     }
   }
 
   private createEnemyView(enemy: Enemy): EnemyView {
     const container = this.scene.add.container(enemy.x, enemy.y).setDepth(2);
-    const graphics = this.scene.add.graphics();
-    container.add(graphics);
+    const image = this.scene.add.image(0, 0, enemyTexture(enemy));
+    container.add(image);
 
-    const view = { container, graphics };
+    const view = { container, image };
     this.enemies.set(enemy.id, view);
     return view;
   }
@@ -329,18 +350,7 @@ export class OuroborosSceneView {
         .setPosition(powerUp.x, powerUp.y)
         .setScale(pulse)
         .setAlpha(expiryAlpha);
-      view.graphics.clear();
-      view.graphics.fillStyle(COLORS.shadow, 0.18);
-      view.graphics.fillCircle(3, 4, powerUp.radius + 7);
-      view.graphics.fillStyle(0xfff9ec, 0.94);
-      view.graphics.fillCircle(0, 0, powerUp.radius + 6);
-      view.graphics.lineStyle(2, COLORS.ink, 0.72);
-      view.graphics.strokeCircle(0, 0, powerUp.radius + 6);
-      paintPowerUpIcon({
-        graphics: view.graphics,
-        powerUp,
-        size: powerUp.radius,
-      });
+      view.image.setDisplaySize(powerUp.radius * 4.5, powerUp.radius * 4.5);
     }
   }
 
@@ -348,10 +358,10 @@ export class OuroborosSceneView {
     const container = this.scene.add
       .container(powerUp.x, powerUp.y)
       .setDepth(2.5);
-    const graphics = this.scene.add.graphics();
-    container.add(graphics);
+    const image = this.scene.add.image(0, 0, powerUpTexture(powerUp));
+    container.add(image);
 
-    const view = { container, graphics };
+    const view = { container, image };
     this.powerUps.set(powerUp.id, view);
     return view;
   }

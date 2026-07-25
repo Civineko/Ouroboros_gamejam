@@ -23,7 +23,7 @@ engine/powerups/powerUpSpawn.ts         资格筛选、权重抽取、安全点�
 engine/powerups/powerUpEffects.ts       效果应用、倒计时、运行时修正值
 engine/powerups/powerUpSystem.ts        TTL、刷新、拾取的单帧调度
 phaser/OuroborosSceneView.ts            场内道具同步与动画
-phaser/assets/placeholders/             程序绘制占位图
+phaser/assets/assetCatalog.ts            正式资源 key、路径与交付状态
 components/PowerUpBar.vue               只读增益状态展示
 ```
 
@@ -35,7 +35,7 @@ components/PowerUpBar.vue               只读增益状态展示
 2. 在 `powerUpCatalog.ts` 登记权重、时长、半径和名称。
 3. 在 `powerUpEffects.ts` 实现即时处理或派生修正值，并补规则测试。
 4. 如有特殊刷新资格，在 `powerUpSpawn.ts` 添加纯函数条件并补点位测试。
-5. 在占位 painter、`assetCatalog.ts`、`PowerUpBar.vue` 和 `ART_ASSETS.md` 登记表现。
+5. 在 `assetCatalog.ts`、`PowerUpBar.vue` 和 `ART_ASSETS.md` 登记表现；资源未交付时再添加程序占位。
 6. 验证重复拾取、暂停、重新开始、到期和同帧碰撞顺序。
 
 不要为每种道具建立 Scene 子类，也不要在 `gameEngine.ts` 中继续堆叠图标或美术判断。只有需要独立生命周期的复杂实体（例如可被敌人摧毁的道具）才升级为单独系统。
