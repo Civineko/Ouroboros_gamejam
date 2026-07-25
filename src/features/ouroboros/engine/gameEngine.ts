@@ -1,4 +1,5 @@
 import {
+  BODY_WIDTH,
   GLOBAL_SPEED_INCREMENT,
   INITIAL_BODY_LENGTH,
   INITIAL_BODY_POINTS,
@@ -11,9 +12,9 @@ import {
 } from "./config";
 import {
   angleDifference,
+  buildClosedStrokeRegion,
   distance,
   nativeCollisionSystem,
-  polygonArea,
   trimTrailToLength,
 } from "./geometry";
 import {
@@ -49,6 +50,9 @@ const FIRST_WAVE_MESSAGE = "正式开始，三角敌人会追踪蛇头！";
 const INITIAL_RING_RADIUS = 112 * (2 / 3);
 const INITIAL_RING_GAP_ANGLE = 0.48;
 const TUTORIAL_AUTO_SPEED = 32;
+const MIN_CAPTURE_REGION_AREA = 600;
+const SUCCESSFUL_CLOSURE_COOLDOWN = 1.8;
+const INVALID_CLOSURE_COOLDOWN = 0.45;
 
 export function enemyLimitFor(kills: number): number {
   return Math.min(MAX_ENEMIES, 4 + Math.floor(kills / 3));
@@ -394,44 +398,49 @@ export function updateGame(
 
   const liveTail = game.trail[0];
   if (
+    game.lives > 0 &&
     liveTail &&
     game.closureCooldown <= 0 &&
     game.trail.length > 34 &&
-    distance(liveHead, liveTail) < activeModifiers.closureDistance &&
-    polygonArea(game.trail) > 2200
+    distance(liveHead, liveTail) < activeModifiers.closureDistance
   ) {
     const ring = game.trail.map((point) => ({ ...point }));
-    const trappedIds = new Set(
-      game.enemies
-        .filter((enemy) => collisions.containsPoint(ring, enemy))
-        .map((enemy) => enemy.id),
-    );
-    const captured = trappedIds.size;
+    const region = buildClosedStrokeRegion(ring, BODY_WIDTH / 2);
+    if (region.enclosedArea > MIN_CAPTURE_REGION_AREA) {
+      const trappedIds = new Set(
+        game.enemies
+          .filter((enemy) => region.containsCircle(enemy, enemy.size))
+          .map((enemy) => enemy.id),
+      );
+      const captured = trappedIds.size;
 
-    game.enemies = game.enemies.filter((enemy) => !trappedIds.has(enemy.id));
-    game.lastRing = ring;
-    game.closureFlash = 1;
-    game.closureCooldown = 1.8;
+      game.enemies = game.enemies.filter((enemy) => !trappedIds.has(enemy.id));
+      game.lastRing = ring;
+      game.closureFlash = 1;
+      game.closureCooldown = SUCCESSFUL_CLOSURE_COOLDOWN;
 
-    if (captured > 0) {
-      game.kills += captured;
-      game.bodyLength += captured * 31;
-      if (game.tutorialComplete) {
-        game.message = `闭环成功，净化了 ${captured} 个敌人！`;
+      if (captured > 0) {
+        game.kills += captured;
+        game.bodyLength += captured * 31;
+        if (game.tutorialComplete) {
+          game.message = `闭环成功，净化了 ${captured} 个敌人！`;
+        } else {
+          game.tutorialComplete = true;
+          game.tutorialAutoSteer = false;
+          game.spawnClock = 0;
+          game.message = FIRST_WAVE_MESSAGE;
+        }
+        events.push({ type: "capture", count: captured, totalKills: game.kills });
       } else {
-        game.tutorialComplete = true;
-        game.tutorialAutoSteer = false;
-        game.spawnClock = 0;
-        game.message = FIRST_WAVE_MESSAGE;
+        game.message = "形成了空环，没有敌人被圈住";
+        events.push({ type: "empty-loop" });
       }
-      events.push({ type: "capture", count: captured, totalKills: game.kills });
-    } else {
-      game.message = "形成了空环，没有敌人被圈住";
-      events.push({ type: "empty-loop" });
-    }
 
-    const pointsToRelease = Math.min(9, Math.max(0, game.trail.length - 25));
-    game.trail.splice(0, pointsToRelease);
+      const pointsToRelease = Math.min(9, Math.max(0, game.trail.length - 25));
+      game.trail.splice(0, pointsToRelease);
+    } else {
+      game.closureCooldown = INVALID_CLOSURE_COOLDOWN;
+    }
   }
 
   if (!game.tutorialComplete && game.lives > 0 && game.enemies.length === 0) {

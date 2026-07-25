@@ -35,7 +35,7 @@ Phaser 运行时边界。Scene 负责游戏循环与输入，View 负责 WebGL /
 
 `public/assets/ouroboros/` 是唯一的游戏运行时美术根目录。`phaser/assets/assetCatalog.ts` 是 Phaser key、路径和交付状态的唯一清单；Scene 不得写裸资源路径。标记为 `todo` 的资源不会加载，正式文件验收后再切换为 `ready`。
 
-程序绘制占位图集中在 `phaser/assets/placeholders/`。正式美术接入后逐项删除对应占位实现，不把临时绘图留在玩法引擎。文件规格、优先级和交付 TODO 见 [ART_ASSETS.md](ART_ASSETS.md)。
+尚未交付的新资源可以在 `phaser/assets/placeholders/` 建立程序占位；正式美术接入后逐项删除对应实现，不把临时绘图留在玩法引擎。文件规格、优先级和交付 TODO 见 [ART_ASSETS.md](ART_ASSETS.md)。
 
 ### 世界与相机
 

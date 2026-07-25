@@ -14,18 +14,19 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 
-  --paper: #f3f0e7;
-  --paper-strong: #e8e3d7;
-  --surface: #fffdf7;
-  --ink: #263b42;
-  --ink-soft: #647277;
-  --line: rgba(38, 59, 66, 0.15);
-  --stage: #48678f;
-  --teal: #5c9e94;
-  --teal-deep: #3f766f;
-  --coral: #ef624f;
-  --amber: #f2ba49;
-  --shadow: rgba(38, 50, 56, 0.14);
+  --paper: #f4eedf;
+  --paper-strong: #e5dbc5;
+  --surface: #fffaf0;
+  --ink: #172c2f;
+  --ink-soft: #506569;
+  --line: rgba(23, 44, 47, 0.28);
+  --stage: #466b8d;
+  --stage-panel: #203b42;
+  --teal: #6bc9a9;
+  --teal-deep: #2f7e6b;
+  --coral: #e85d52;
+  --amber: #f0bd4d;
+  --shadow: rgba(13, 29, 32, 0.72);
 }
 
 * {
@@ -87,7 +88,9 @@ canvas:focus-visible {
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    transition-delay: 0.01ms !important;
     transition-duration: 0.01ms !important;
+    animation-delay: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
