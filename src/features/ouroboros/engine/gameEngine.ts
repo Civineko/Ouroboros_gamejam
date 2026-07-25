@@ -14,6 +14,11 @@ import {
   polygonArea,
   trimTrailToLength,
 } from "./geometry";
+import {
+  ENEMY_DEFINITIONS,
+  enemyKindForId,
+} from "./enemies/enemyCatalog";
+import { updateEnemyMotion } from "./enemies/enemyMotion";
 import type {
   CardinalDirection,
   CollisionSystem,
@@ -24,8 +29,6 @@ import type {
   Point,
   RandomSource,
 } from "./types";
-
-const ENEMY_PALETTE = ["#ff624e", "#f3b849", "#ee765f"] as const;
 
 export function enemyLimitFor(kills: number): number {
   return Math.min(MAX_ENEMIES, 4 + Math.floor(kills / 3));
@@ -42,6 +45,8 @@ export function createEnemy(
 ): Enemy {
   const edge = Math.floor(random() * 4);
   const padding = 28;
+  const kind = enemyKindForId(id);
+  const definition = ENEMY_DEFINITIONS[kind];
 
   const position =
     edge === 0
@@ -64,13 +69,23 @@ export function createEnemy(
               y: WORLD_HEIGHT - padding,
             };
 
+  const baseSpeed = 34 + random() * 14 + Math.min(38, kills * 1.6);
+  const size = 12 + random() * 5;
+  const phase = random() * Math.PI * 2;
+  const speed = baseSpeed * definition.speedMultiplier;
+
   return {
     ...position,
     id,
-    speed: 34 + random() * 14 + Math.min(38, kills * 1.6),
-    size: 12 + random() * 5,
-    color: ENEMY_PALETTE[id % ENEMY_PALETTE.length] ?? ENEMY_PALETTE[0],
-    phase: random() * Math.PI * 2,
+    kind,
+    speed,
+    size,
+    color: definition.color,
+    phase,
+    velocityX: Math.cos(phase) * speed,
+    velocityY: Math.sin(phase) * speed,
+    heading: phase,
+    behaviorClock: 0.4 + (phase / (Math.PI * 2)) * 0.8,
   };
 }
 
@@ -212,11 +227,7 @@ export function updateGame(
   const liveHead = game.trail.at(-1);
   if (!liveHead) return events;
 
-  for (const enemy of game.enemies) {
-    const direction = Math.atan2(liveHead.y - enemy.y, liveHead.x - enemy.x);
-    enemy.x += Math.cos(direction) * enemy.speed * delta;
-    enemy.y += Math.sin(direction) * enemy.speed * delta;
-  }
+  updateEnemyMotion(game.enemies, liveHead, delta, random);
 
   if (game.invulnerable <= 0) {
     const collision = game.enemies.findIndex(
