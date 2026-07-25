@@ -1,5 +1,14 @@
 node_modules
 dist
+dist-offline
+release
+.toolchains
 .DS_Store
 *.local
 coverage
+android/.gradle
+android/.idea
+android/build
+android/app/build
+android/local.properties
+*.jks

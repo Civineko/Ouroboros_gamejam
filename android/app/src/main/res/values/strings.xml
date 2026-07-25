@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">圈一圈</string>
+    <string name="title_activity_main">圈一圈</string>
+    <string name="package_name">com.civineko.quanyiquan</string>
+    <string name="custom_url_scheme">com.civineko.quanyiquan</string>
+</resources>

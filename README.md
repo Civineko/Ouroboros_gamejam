@@ -23,6 +23,29 @@ npm test
 npm run build
 ```
 
+## Demo 成品
+
+打包结果统一输出到 `release/`：
+
+- `QuanYiQuan-Demo-v0.1.0-Windows-x64.exe`：Windows 10/11 64 位便携版，双击即可全屏游玩，无需安装。
+- `QuanYiQuan-Demo-v0.1.0-Web.zip`：离线网页版，解压后双击其中的 `index.html` 即可游玩。
+- `QuanYiQuan-Demo-v0.1.0-Android.apk`：Android 7.0 及以上安装包，传到手机后允许安装未知来源应用并安装。
+
+重新生成离线网页包或 Windows 包：
+
+```bash
+npm run package:web
+npm run package:win
+```
+
+生成 Android 包前需要安装 JDK 21 和 Android SDK，并设置 `JAVA_HOME`、`ANDROID_HOME`。然后运行：
+
+```bash
+npm run package:android
+```
+
+当前 APK 使用 Android 调试签名，适合 Game Jam 内测分发。提交应用商店前需要改用团队保管的正式签名密钥生成 release APK 或 AAB。
+
 ## 目录
 
 ```text
@@ -51,6 +74,6 @@ src/
 - 鼠标点击或拖动、触屏拖动：连续转向
 - `WASD` / 方向键：四方向转向
 - `Space` / `Esc` / `P`：暂停或继续
-- 暂停菜单：继续游戏、结束本局、调整总音量或静音
+- 暂停菜单：继续游戏、结束本局、分别调整音乐和音效音量
 
 生产构建输出到 `dist/`，可部署到任意静态站点。
