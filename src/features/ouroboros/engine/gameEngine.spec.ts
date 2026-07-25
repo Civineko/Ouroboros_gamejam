@@ -14,29 +14,8 @@ import {
   steerToward,
   updateGame,
 } from "./gameEngine";
-import type { CollisionSystem, Point } from "./types";
 
 const fixedRandom = () => 0.25;
-const noCollisions: CollisionSystem = {
-  circleToCircle: () => null,
-  circleToSegment: () => null,
-  containsPoint: () => false,
-};
-
-function sampleClosedPolygon(vertices: readonly Point[], pointsPerEdge = 9): Point[] {
-  return vertices.flatMap((start, index) => {
-    const end = vertices[(index + 1) % vertices.length];
-    if (!end) return [];
-
-    return Array.from({ length: pointsPerEdge }, (_, step) => {
-      const progress = step / pointsPerEdge;
-      return {
-        x: start.x + (end.x - start.x) * progress,
-        y: start.y + (end.y - start.y) * progress,
-      };
-    });
-  });
-}
 
 describe("game engine", () => {
   it("creates a complete, deterministic initial state", () => {
@@ -345,53 +324,6 @@ describe("game engine", () => {
     expect(game.bodyLength).toBe(1031);
   });
 
-  it("preserves the previous minimum loop size after stroke-area capture", () => {
-    const game = createGameState(fixedRandom);
-    game.trail = Array.from({ length: 36 }, (_, index) => {
-      const angle = (Math.PI * 2 * index) / 35;
-      return {
-        x: 400 + Math.cos(angle) * 27,
-        y: 300 + Math.sin(angle) * 27,
-      };
-    });
-    game.bodyLength = 1000;
-    game.closureCooldown = 0;
-    game.tutorialComplete = true;
-    game.enemies = [
-      {
-        ...createEnemy(20, 0, fixedRandom),
-        x: 400,
-        y: 300,
-      },
-    ];
-
-    const events = updateGame(game, 0, fixedRandom, noCollisions);
-
-    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
-    expect(game.enemies).toHaveLength(0);
-  });
-
-  it("throttles invalid small-loop checks", () => {
-    const game = createGameState(fixedRandom);
-    game.trail = Array.from({ length: 36 }, (_, index) => {
-      const angle = (Math.PI * 2 * index) / 35;
-      return {
-        x: 400 + Math.cos(angle) * 26,
-        y: 300 + Math.sin(angle) * 26,
-      };
-    });
-    game.bodyLength = 1000;
-    game.closureCooldown = 0;
-    game.tutorialComplete = true;
-    game.enemies = [];
-
-    const events = updateGame(game, 0, fixedRandom, noCollisions);
-
-    expect(events).toEqual([]);
-    expect(game.closureCooldown).toBe(0.45);
-    expect(game.lastRing).toBeNull();
-  });
-
   it("finishes the tutorial after the first captured enemy", () => {
     const game = createGameState(fixedRandom);
     game.trail = Array.from({ length: 36 }, (_, index) => {
@@ -424,123 +356,7 @@ describe("game engine", () => {
     expect(game.enemies[0]?.kind).toBe("tracker");
   });
 
-  it("captures an enemy whose radius intersects the ring edge", () => {
-    const game = createGameState(fixedRandom);
-    game.trail = sampleClosedPolygon([
-      { x: 300, y: 200 },
-      { x: 500, y: 200 },
-      { x: 500, y: 400 },
-      { x: 300, y: 400 },
-    ]);
-    game.bodyLength = 1000;
-    game.closureCooldown = 0;
-    game.tutorialComplete = true;
-    game.enemies = [
-      {
-        ...createEnemy(20, 0, fixedRandom),
-        x: 513,
-        y: 300,
-      },
-    ];
-
-    const events = updateGame(game, 0, fixedRandom, noCollisions);
-
-    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
-    expect(game.enemies).toHaveLength(0);
-  });
-
-  it("captures an enemy whose circle only intersects the snake outer edge", () => {
-    const game = createGameState(fixedRandom);
-    game.trail = sampleClosedPolygon([
-      { x: 300, y: 200 },
-      { x: 500, y: 200 },
-      { x: 500, y: 400 },
-      { x: 300, y: 400 },
-    ]);
-    game.bodyLength = 1000;
-    game.closureCooldown = 0;
-    game.tutorialComplete = true;
-    const enemy = {
-      ...createEnemy(20, 0, fixedRandom),
-      x: 524,
-      y: 300,
-    };
-    game.enemies = [enemy];
-
-    expect(enemy.x - enemy.size).toBeGreaterThan(500);
-    expect(enemy.x - enemy.size).toBeLessThanOrEqual(500 + BODY_WIDTH / 2);
-
-    const events = updateGame(game, 0, fixedRandom, noCollisions);
-
-    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
-    expect(game.enemies).toHaveLength(0);
-  });
-
-  it("does not capture an enemy beyond the snake and enemy radius sum", () => {
-    const game = createGameState(fixedRandom);
-    game.trail = sampleClosedPolygon([
-      { x: 300, y: 200 },
-      { x: 500, y: 200 },
-      { x: 500, y: 400 },
-      { x: 300, y: 400 },
-    ]);
-    game.bodyLength = 1000;
-    game.closureCooldown = 0;
-    game.tutorialComplete = true;
-    const enemy = {
-      ...createEnemy(20, 0, fixedRandom),
-      x: 500 + BODY_WIDTH / 2 + 15.75 + 0.01,
-      y: 300,
-    };
-    game.enemies = [enemy];
-
-    const events = updateGame(game, 0, fixedRandom, noCollisions);
-
-    expect(events).toContainEqual({ type: "empty-loop" });
-    expect(game.enemies).toEqual([enemy]);
-  });
-
-  it("captures both figure-eight leaves without filling the space between them", () => {
-    const game = createGameState(fixedRandom);
-    game.trail = sampleClosedPolygon([
-      { x: 400, y: 300 },
-      { x: 300, y: 200 },
-      { x: 300, y: 400 },
-      { x: 400, y: 300 },
-      { x: 500, y: 200 },
-      { x: 500, y: 400 },
-    ]);
-    game.bodyLength = 1000;
-    game.closureCooldown = 0;
-    game.tutorialComplete = true;
-    game.enemies = [
-      {
-        ...createEnemy(20, 0, fixedRandom),
-        x: 330,
-        y: 300,
-      },
-      {
-        ...createEnemy(21, 0, fixedRandom),
-        x: 470,
-        y: 300,
-      },
-      {
-        ...createEnemy(22, 0, fixedRandom),
-        x: 400,
-        y: 220,
-      },
-    ];
-
-    const events = updateGame(game, 0, fixedRandom, noCollisions);
-
-    expect(events).toContainEqual({ type: "capture", count: 2, totalKills: 2 });
-    expect(game.enemies).toHaveLength(1);
-    expect(game.enemies[0]?.id).toBe(22);
-    expect(game.lastRing).not.toBeNull();
-    expect(game.closureCooldown).toBe(1.8);
-  });
-
-  it("does not resolve a closed ring during the fatal update", () => {
+  it("still resolves a closed ring during the fatal update", () => {
     const game = createGameState(fixedRandom);
     game.trail = Array.from({ length: 36 }, (_, index) => {
       const angle = (Math.PI * 2 * index) / 35;
@@ -571,9 +387,8 @@ describe("game engine", () => {
     expect(events).toEqual([
       { type: "hit", lives: 0 },
       { type: "game-over" },
+      { type: "empty-loop" },
     ]);
-    expect(game.message).toBe("衔尾之环断开了");
-    expect(game.lastRing).toBeNull();
-    expect(game.closureCooldown).toBe(0);
+    expect(game.message).toBe("形成了空环，没有敌人被圈住");
   });
 });

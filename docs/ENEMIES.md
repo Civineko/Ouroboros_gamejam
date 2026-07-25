@@ -19,7 +19,7 @@ enemyMotion <──── Game update <───────┘
      │
      └── seek / wander + Boids + overlap correction
 
-Enemy state ──> assetCatalog texture ──> Phaser Image
+Enemy state ──> assets/placeholders/enemyIconPainters ──> Phaser Graphics
 ```
 
 `Enemy` 只保存可序列化状态。Phaser 对象、绘图函数和输入监听不得进入规则层。
@@ -37,5 +37,5 @@ Enemy state ──> assetCatalog texture ──> Phaser Image
 1. 在 `EnemyKind` 增加类型值。
 2. 在 `enemyCatalog.ts` 登记颜色、速度倍率和是否运动。
 3. 在 `enemyMotion.ts` 增加目标方向策略；通用 Boids 不应复制。
-4. 在资源清单与 `assetCatalog.ts` 登记图片；未交付时使用独立程序占位，交付后删除对应占位。
+4. 在资源清单登记正式图片；未交付前才在 `assets/placeholders/enemyIconPainters.ts` 登记独立轮廓。
 5. 添加行为和持续分离测试。

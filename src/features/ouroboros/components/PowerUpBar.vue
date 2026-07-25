@@ -45,12 +45,12 @@ function durationLabel(buff: BuffSnapshot): string {
   display: flex;
   align-items: center;
   min-width: 0;
-  min-height: 28px;
+  height: 28px;
+  overflow: hidden;
 }
 
 .buff-list {
   display: flex;
-  flex-wrap: wrap;
   gap: 5px;
   align-items: center;
   min-width: 0;
@@ -67,22 +67,21 @@ function durationLabel(buff: BuffSnapshot): string {
   min-width: 0;
   height: 24px;
   padding: 0 7px;
-  color: var(--surface);
-  background: rgba(32, 59, 66, 0.92);
-  border: 2px solid var(--ink);
-  border-radius: 5px;
-  box-shadow: 2px 3px 0 rgba(13, 29, 32, 0.62);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 6px;
 }
 
 .buff-item > svg {
   flex: none;
-  color: var(--teal);
+  color: var(--teal-deep);
 }
 
 .buff-name {
   min-width: 0;
   overflow: hidden;
-  color: rgba(255, 250, 240, 0.76);
+  color: var(--ink-soft);
   font-size: 10px;
   font-weight: 800;
   text-overflow: ellipsis;
@@ -104,7 +103,7 @@ function durationLabel(buff: BuffSnapshot): string {
 
   .buff-item {
     flex: 0 1 auto;
-    max-width: min(132px, calc(50vw - 17px));
+    max-width: min(132px, 40vw);
     padding-inline: 5px;
   }
 

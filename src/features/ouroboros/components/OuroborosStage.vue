@@ -70,7 +70,7 @@ defineExpose<OuroborosStageExpose>({
         />
       </div>
 
-      <div v-if="gameOver" class="stage-cover stage-cover-end">
+      <div v-if="gameOver" class="stage-cover">
         <span class="final-score">
           本局消灭 {{ hud.kills }} 个敌人，蛇身成长至 {{ hud.length }}
         </span>
@@ -130,14 +130,17 @@ defineExpose<OuroborosStageExpose>({
   align-items: center;
   justify-content: center;
   padding: 24px;
-  color: var(--surface);
+  color: var(--ink);
   text-align: center;
-  background: rgba(18, 36, 40, 0.9);
+  background: rgba(247, 244, 235, 0.94);
+  backdrop-filter: blur(4px);
 }
 
 .stage-cover-intro {
-  color: var(--ink);
-  background: rgba(18, 36, 40, 0.1);
+  color: #20373e;
+  background: rgba(244, 244, 236, 0.24);
+  -webkit-backdrop-filter: blur(3px) saturate(0.84) brightness(1.04);
+  backdrop-filter: blur(3px) saturate(0.84) brightness(1.04);
 }
 
 .stage-cover-intro::after {
@@ -146,8 +149,7 @@ defineExpose<OuroborosStageExpose>({
     max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   pointer-events: none;
   content: "";
-  border: 2px solid rgba(255, 250, 240, 0.46);
-  box-shadow: inset 0 0 0 2px rgba(23, 44, 47, 0.22);
+  border: 1px solid rgba(255, 253, 247, 0.28);
 }
 
 .intro-brand {
@@ -168,30 +170,20 @@ defineExpose<OuroborosStageExpose>({
 
 .stage-cover h1 {
   margin: 0;
-  color: var(--surface);
+  color: #fffdf7;
   font-family: "Dymon ShouXieTi", "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 64px;
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0;
   text-shadow:
-    0 3px 0 var(--ink),
-    3px 5px 0 rgba(23, 44, 47, 0.54);
+    0 4px 0 rgba(25, 37, 49, 0.2),
+    0 10px 24px rgba(25, 37, 49, 0.2);
 }
 
 .stage-cover-dark {
   color: var(--surface);
-  background: rgba(18, 36, 40, 0.84);
-}
-
-.stage-cover-end::after {
-  position: absolute;
-  inset: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
-    max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-  pointer-events: none;
-  content: "";
-  border: 2px solid rgba(107, 201, 169, 0.62);
-  box-shadow: inset 0 0 0 2px rgba(23, 44, 47, 0.72);
+  background: rgba(38, 59, 66, 0.82);
 }
 
 .stage-cover-dialog {
@@ -205,7 +197,7 @@ defineExpose<OuroborosStageExpose>({
 
 .final-score {
   margin: 0 0 20px;
-  color: rgba(255, 250, 240, 0.72);
+  color: var(--ink-soft);
   font-size: 11px;
   font-weight: 700;
 }
@@ -216,16 +208,16 @@ defineExpose<OuroborosStageExpose>({
   align-items: center;
   justify-content: center;
   min-width: 146px;
-  min-height: 44px;
+  min-height: 42px;
   padding: 0 18px;
-  color: var(--ink);
+  color: var(--surface);
   font-size: 12px;
   font-weight: 900;
   cursor: pointer;
-  background: var(--teal);
-  border: 2px solid var(--ink);
-  border-radius: 6px;
-  box-shadow: 4px 5px 0 rgba(13, 29, 32, 0.76);
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 5px 6px 0 rgba(38, 59, 66, 0.18);
   transition:
     transform 160ms ease,
     box-shadow 160ms ease,
@@ -236,18 +228,22 @@ defineExpose<OuroborosStageExpose>({
   min-width: 172px;
   min-height: 50px;
   pointer-events: auto;
-  background: var(--amber);
 }
 
 .primary-command:hover {
-  background: var(--surface);
+  background: #304a53;
   transform: translateY(-1px);
-  box-shadow: 4px 7px 0 rgba(13, 29, 32, 0.72);
+  box-shadow: 5px 8px 0 rgba(38, 59, 66, 0.16);
 }
 
 .primary-command:active {
   transform: translate(3px, 4px);
-  box-shadow: 1px 1px 0 rgba(13, 29, 32, 0.76);
+  box-shadow: 2px 2px 0 rgba(38, 59, 66, 0.18);
+}
+
+.primary-command.amber {
+  color: var(--ink);
+  background: var(--amber);
 }
 
 .intro-cover-leave-active {
