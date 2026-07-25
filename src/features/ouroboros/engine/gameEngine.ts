@@ -46,9 +46,9 @@ import type {
 
 const TUTORIAL_MESSAGE = "首尾相接，圈住敌人";
 const FIRST_WAVE_MESSAGE = "正式开始，三角敌人会追踪蛇头！";
-const INITIAL_INFINITY_RADIUS_X = 125;
-const INITIAL_INFINITY_RADIUS_Y = 62.5;
-const INITIAL_INFINITY_GAP_ANGLE = 0.24;
+const INITIAL_RING_RADIUS = 112 * (2 / 3);
+const INITIAL_RING_GAP_ANGLE = 0.48;
+const TUTORIAL_AUTO_SPEED = 32;
 
 export function enemyLimitFor(kills: number): number {
   return Math.min(MAX_ENEMIES, 4 + Math.floor(kills / 3));
@@ -137,15 +137,15 @@ function appendEnemy(
 
 function createInitialTrail(): Point[] {
   const center = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
-  const sweep = Math.PI * 2 - INITIAL_INFINITY_GAP_ANGLE;
-  const startAngle = Math.PI / 2 + INITIAL_INFINITY_GAP_ANGLE / 2;
+  const sweep = Math.PI * 2 - INITIAL_RING_GAP_ANGLE;
+  const startAngle = INITIAL_RING_GAP_ANGLE / 2;
 
   return Array.from({ length: INITIAL_BODY_POINTS }, (_, index) => {
     const progress = index / (INITIAL_BODY_POINTS - 1);
     const angle = startAngle + sweep * progress;
     return {
-      x: center.x + Math.sin(angle) * INITIAL_INFINITY_RADIUS_X,
-      y: center.y + Math.sin(angle * 2) * INITIAL_INFINITY_RADIUS_Y,
+      x: center.x + Math.cos(angle) * INITIAL_RING_RADIUS,
+      y: center.y + Math.sin(angle) * INITIAL_RING_RADIUS,
     };
   });
 }
@@ -156,19 +156,26 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     x: WORLD_WIDTH / 2,
     y: WORLD_HEIGHT / 2,
   };
+  const initialTail = trail[0] ?? initialHead;
+  const previousHead = trail.at(-2) ?? initialHead;
+  const initialAngle = Math.atan2(
+    initialHead.y - previousHead.y,
+    initialHead.x - previousHead.x,
+  );
 
   const game: GameState = {
     trail,
-    angle: 0,
-    target: { x: initialHead.x + 1000, y: initialHead.y },
-    steering: false,
+    angle: initialAngle,
+    target: { ...initialTail },
+    steering: true,
+    tutorialAutoSteer: true,
     bodyLength: INITIAL_BODY_LENGTH,
     enemies: [],
     spawnClock: 0,
     kills: 0,
     lives: INITIAL_LIVES,
     elapsed: 0,
-    closureCooldown: 1.2,
+    closureCooldown: 0.6,
     closureFlash: 0,
     lastRing: null,
     invulnerable: 0,
@@ -187,7 +194,7 @@ export function createGameState(random: RandomSource = Math.random): GameState {
 
   appendEnemy(game, random, {
     kind: "stationary",
-    position: { x: WORLD_WIDTH / 2 - 75, y: WORLD_HEIGHT / 2 },
+    position: { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 },
   });
   game.powerUpSpawnClock = nextPowerUpInterval(random);
   return game;
@@ -207,6 +214,7 @@ export function snapshotHud(game: GameState): HudSnapshot {
 }
 
 export function steerToward(game: GameState, target: Point): void {
+  game.tutorialAutoSteer = false;
   game.target = target;
   game.steering = true;
 }
@@ -230,6 +238,7 @@ export function setCardinalDirection(
   const head = game.trail.at(-1);
   if (!head) return;
 
+  game.tutorialAutoSteer = false;
   game.angle = nextAngle;
   game.steering = false;
   game.target = {
@@ -269,6 +278,16 @@ export function updateGame(
   const head = game.trail.at(-1);
   if (!head) return events;
 
+  const tutorialTail = game.trail[0];
+  if (
+    game.tutorialAutoSteer &&
+    !game.tutorialComplete &&
+    tutorialTail
+  ) {
+    game.target = { ...tutorialTail };
+    game.steering = true;
+  }
+
   if (game.steering) {
     const targetAngle = Math.atan2(
       game.target.y - head.y,
@@ -285,8 +304,11 @@ export function updateGame(
     game.angle += turn;
   }
 
-  const speed =
-    (150 + Math.min(42, game.kills * 1.25)) * frameModifiers.snakeSpeed;
+  const baseSpeed =
+    game.tutorialAutoSteer && !game.tutorialComplete
+      ? TUTORIAL_AUTO_SPEED
+      : 150 + Math.min(42, game.kills * 1.25);
+  const speed = baseSpeed * frameModifiers.snakeSpeed;
   const nextHead = {
     x: head.x + Math.cos(game.angle) * speed * effectiveDelta,
     y: head.y + Math.sin(game.angle) * speed * effectiveDelta,
@@ -398,6 +420,7 @@ export function updateGame(
         game.message = `闭环成功，净化了 ${captured} 个敌人！`;
       } else {
         game.tutorialComplete = true;
+        game.tutorialAutoSteer = false;
         game.spawnClock = 0;
         game.message = FIRST_WAVE_MESSAGE;
       }
