@@ -3,12 +3,19 @@ export interface Point {
   y: number;
 }
 
+export type EnemyKind = "stationary" | "wanderer" | "tracker";
+
 export interface Enemy extends Point {
   id: number;
+  kind: EnemyKind;
   speed: number;
   size: number;
   color: string;
   phase: number;
+  velocityX: number;
+  velocityY: number;
+  heading: number;
+  behaviorClock: number;
 }
 
 export interface GameState {

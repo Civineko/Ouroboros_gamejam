@@ -16,6 +16,11 @@ describe("game engine", () => {
 
     expect(game.trail).toHaveLength(54);
     expect(game.enemies).toHaveLength(3);
+    expect(game.enemies.map((enemy) => enemy.kind)).toEqual([
+      "stationary",
+      "wanderer",
+      "tracker",
+    ]);
     expect(hud).toMatchObject({ kills: 0, lives: 3, level: 1, enemyLimit: 4 });
   });
 
@@ -29,7 +34,7 @@ describe("game engine", () => {
     expect(game.angle).toBe(-Math.PI / 2);
   });
 
-  it("preserves the original random call order when creating an enemy", () => {
+  it("creates a deterministic stationary enemy without extra random calls", () => {
     const values = [0, 0.25, 0.5, 0.75, 0.9];
     let calls = 0;
     const enemy = createEnemy(0, 0, () => values[calls++] ?? 0);
@@ -38,7 +43,8 @@ describe("game engine", () => {
     expect(enemy).toMatchObject({
       x: 28,
       y: 169,
-      speed: 41,
+      kind: "stationary",
+      speed: 0,
       size: 15.75,
       color: "#ff624e",
       phase: 0.9 * Math.PI * 2,

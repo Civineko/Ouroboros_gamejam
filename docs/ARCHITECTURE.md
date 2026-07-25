@@ -21,9 +21,15 @@ Phaser Scene 通过快照更新 Vue，不向组件暴露可变 GameState
 
 玩法的唯一事实来源。`updateGame(state, delta)` 原地推进状态并返回领域事件，闭环、碰撞、成长、敌人刷新都在这里。它不能导入 Vue 或浏览器 API，因此可以在 Node 环境直接测试。
 
+敌人扩展集中在 `engine/enemies/`：`enemyCatalog.ts` 定义类型与基础数值，`enemyMotion.ts` 负责随机移动、追踪和 Boids 群体运动。新增敌人不得把类型判断散落到主循环。
+
+具体类型协议、图标语言和新增步骤见 [ENEMIES.md](ENEMIES.md)。
+
 ### `phaser/`
 
 Phaser 运行时边界。Scene 负责游戏循环与输入，View 负责 WebGL / Canvas 渲染，碰撞适配器使用 Phaser 的圆形相交和多边形包含判断。这里可以调整表现，但玩法数值仍由 `engine/` 管理。
+
+敌人图形通过 `phaser/enemies/enemyIconPainters.ts` 的注册表按类型分发。图标必须拥有独立轮廓，不能只依靠颜色区分。
 
 ### `input/`
 

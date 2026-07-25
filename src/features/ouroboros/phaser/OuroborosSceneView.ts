@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { BODY_WIDTH, HEAD_RADIUS, TAIL_RADIUS, WORLD_HEIGHT, WORLD_WIDTH } from "../engine/config";
 import type { Enemy, GameState, Point } from "../engine/types";
+import { paintEnemyIcon } from "./enemies/enemyIconPainters";
 
 const COLORS = {
   stage: 0x48678f,
@@ -14,16 +15,11 @@ const COLORS = {
   tail: 0xfff9ec,
   tailCore: 0xef624f,
   head: 0xf2ba49,
-  enemyCore: 0xffeca7,
 } as const;
 
 interface EnemyView {
   container: Phaser.GameObjects.Container;
   graphics: Phaser.GameObjects.Graphics;
-}
-
-function colorFromHex(value: string): number {
-  return Number.parseInt(value.slice(1), 16);
 }
 
 function traceTrail(
@@ -173,17 +169,14 @@ export class OuroborosSceneView {
       const view = this.enemies.get(enemy.id) ?? this.createEnemyView(enemy);
       const pulse = Math.sin(game.elapsed * 3.4 + enemy.phase) * 1.5;
       const size = enemy.size + pulse;
+      const movementAngle = Math.atan2(enemy.velocityY, enemy.velocityX);
 
       view.container.setPosition(enemy.x, enemy.y);
-      view.container.setRotation(game.elapsed * 0.8 + enemy.phase);
+      view.container.setRotation(
+        enemy.kind === "stationary" ? 0 : movementAngle,
+      );
       view.graphics.clear();
-      view.graphics.fillStyle(COLORS.shadow, 0.22);
-      view.graphics.fillRoundedRect(-size + 6, -size + 8, size * 2, size * 2, 6);
-      view.graphics.fillStyle(colorFromHex(enemy.color), 1);
-      view.graphics.fillRoundedRect(-size, -size, size * 2, size * 2, 6);
-      view.graphics.fillStyle(COLORS.enemyCore, 0.74);
-      view.graphics.fillTriangle(-5, 0, 0, -5, 5, 0);
-      view.graphics.fillTriangle(-5, 0, 0, 5, 5, 0);
+      paintEnemyIcon({ graphics: view.graphics, enemy, size });
     }
   }
 
