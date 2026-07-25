@@ -1,5 +1,9 @@
 import Phaser from "phaser";
-import { MAX_FRAME_DELTA } from "../engine/config";
+import {
+  MAX_FRAME_DELTA,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+} from "../engine/config";
 import {
   createGameState,
   setCardinalDirection,
@@ -58,9 +62,13 @@ export class OuroborosScene extends Phaser.Scene {
 
   create(): void {
     this.cameraController = new OuroborosCameraController(this.cameras.main);
-    this.snapCameraToHead();
+    this.cameraController.snapTo({
+      x: WORLD_WIDTH / 2,
+      y: WORLD_HEIGHT / 2,
+    });
     this.sceneView = new OuroborosSceneView(this);
     this.sceneView.render(this.state);
+    this.sceneView.playIntroReveal();
 
     this.input.on("pointerdown", this.handlePointerDown, this);
     this.input.on("pointermove", this.handlePointerMove, this);
@@ -87,18 +95,23 @@ export class OuroborosScene extends Phaser.Scene {
     }
 
     this.sceneView?.render(this.state);
-    this.followHead(delta);
+    if (this.running) this.followHead(delta);
   }
 
   startRound(): void {
-    this.state = createGameState();
+    if (this.running && !this.gameOver) return;
+
+    const restarting = this.started;
+    if (restarting) this.state = createGameState();
+
+    this.sceneView?.completeIntroReveal();
     this.running = true;
     this.started = true;
     this.paused = false;
     this.gameOver = false;
     this.skipNextUpdate = true;
     this.hudPublishClock = 0;
-    this.snapCameraToHead();
+    if (restarting) this.snapCameraToHead();
     this.publishStatus();
     this.publishHud();
     this.sceneView?.render(this.state);
@@ -111,10 +124,12 @@ export class OuroborosScene extends Phaser.Scene {
   }
 
   steer(direction: CardinalDirection): void {
+    if (!this.started || this.gameOver) return;
     setCardinalDirection(this.state, direction);
   }
 
   private aimAt(point: Point): void {
+    if (!this.started || this.gameOver) return;
     steerToward(this.state, point);
   }
 
