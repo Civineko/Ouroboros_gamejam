@@ -35,6 +35,9 @@ class FakeAudioContext {
   resume = vi.fn(async () => {
     this.state = "running";
   });
+  close = vi.fn(async () => {
+    this.state = "closed";
+  });
 
   createGain(): FakeGainNode {
     return new FakeGainNode();
@@ -81,5 +84,23 @@ describe("OuroborosAudioController", () => {
 
     controller.startMusic();
     expect(context.oscillators).toHaveLength(3);
+  });
+
+  it("uses Phaser's audio context without taking ownership of it", () => {
+    const context = new FakeAudioContext();
+    context.state = "running";
+    const fallbackFactory = vi.fn(() => null);
+    const controller = new OuroborosAudioController(fallbackFactory);
+
+    controller.attachContext(
+      context as unknown as AudioContext,
+      context.destination as unknown as AudioNode,
+    );
+    controller.play("ui-click");
+    controller.destroy();
+
+    expect(fallbackFactory).not.toHaveBeenCalled();
+    expect(context.oscillators).toHaveLength(1);
+    expect(context.close).not.toHaveBeenCalled();
   });
 });
