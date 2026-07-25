@@ -1,4 +1,10 @@
 import { onMounted, onUnmounted, readonly, ref, shallowRef } from "vue";
+import {
+  clampMasterVolume,
+  DEFAULT_AUDIO_PREFERENCES,
+  loadAudioPreferences,
+  saveAudioPreferences,
+} from "../audio/audioPreferences";
 import { createGameState, snapshotHud } from "../engine/gameEngine";
 import type { CardinalDirection } from "../engine/types";
 import {
@@ -12,6 +18,13 @@ export function useOuroborosGame(
   const started = ref(false);
   const paused = ref(false);
   const gameOver = ref(false);
+  const savedAudio = loadAudioPreferences();
+  const masterVolume = ref(savedAudio.masterVolume);
+  const muted = ref(savedAudio.muted);
+  let lastAudibleVolume =
+    savedAudio.masterVolume > 0
+      ? savedAudio.masterVolume
+      : DEFAULT_AUDIO_PREFERENCES.masterVolume;
 
   const initialState = createGameState();
   const hud = shallowRef(snapshotHud(initialState));
@@ -23,6 +36,45 @@ export function useOuroborosGame(
 
   function togglePause(): void {
     runtime?.scene.togglePause();
+  }
+
+  function end(): void {
+    runtime?.scene.endRound();
+  }
+
+  function applyAudioPreferences(): void {
+    runtime?.scene.setMasterVolume(muted.value ? 0 : masterVolume.value);
+  }
+
+  function persistAudioPreferences(): void {
+    saveAudioPreferences({
+      masterVolume: masterVolume.value,
+      muted: muted.value,
+    });
+  }
+
+  function setMasterVolume(volume: number): void {
+    const nextVolume = clampMasterVolume(volume);
+    masterVolume.value = nextVolume;
+
+    if (nextVolume > 0) {
+      lastAudibleVolume = nextVolume;
+      muted.value = false;
+    } else {
+      muted.value = true;
+    }
+
+    applyAudioPreferences();
+    persistAudioPreferences();
+  }
+
+  function toggleMute(): void {
+    if (muted.value && masterVolume.value === 0) {
+      masterVolume.value = lastAudibleVolume;
+    }
+    muted.value = !muted.value;
+    applyAudioPreferences();
+    persistAudioPreferences();
   }
 
   function steer(direction: CardinalDirection): void {
@@ -47,6 +99,7 @@ export function useOuroborosGame(
       },
       initialState,
     );
+    applyAudioPreferences();
   });
 
   onUnmounted(() => {
@@ -58,9 +111,14 @@ export function useOuroborosGame(
     started: readonly(started),
     paused: readonly(paused),
     gameOver: readonly(gameOver),
+    masterVolume: readonly(masterVolume),
+    muted: readonly(muted),
     hud: readonly(hud),
     start,
     togglePause,
+    end,
+    setMasterVolume,
+    toggleMute,
     steer,
   };
 }

@@ -1,5 +1,9 @@
 import Phaser from "phaser";
 import {
+  clampMasterVolume,
+  DEFAULT_AUDIO_PREFERENCES,
+} from "../audio/audioPreferences";
+import {
   MAX_FRAME_DELTA,
   WORLD_HEIGHT,
   WORLD_WIDTH,
@@ -47,6 +51,7 @@ export class OuroborosScene extends Phaser.Scene {
   private gameOver = false;
   private skipNextUpdate = true;
   private hudPublishClock = 0;
+  private masterVolume = DEFAULT_AUDIO_PREFERENCES.masterVolume;
 
   constructor(
     private readonly callbacks: OuroborosSceneCallbacks,
@@ -69,10 +74,14 @@ export class OuroborosScene extends Phaser.Scene {
     this.sceneView = new OuroborosSceneView(this);
     this.sceneView.render(this.state);
     this.sceneView.playIntroReveal();
+    this.sound.volume = this.masterVolume;
 
     this.input.on("pointerdown", this.handlePointerDown, this);
     this.input.on("pointermove", this.handlePointerMove, this);
+    this.input.keyboard?.clearCaptures();
     this.input.keyboard?.on("keydown", this.handleKeyDown, this);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    window.addEventListener("blur", this.handleWindowBlur);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
   }
 
@@ -119,17 +128,44 @@ export class OuroborosScene extends Phaser.Scene {
 
   togglePause(): void {
     if (!this.started || this.gameOver) return;
-    this.paused = !this.paused;
+    this.setPaused(!this.paused);
+  }
+
+  pauseRound(): void {
+    if (!this.started || this.gameOver) return;
+    this.setPaused(true);
+  }
+
+  endRound(): void {
+    this.state = createGameState();
+    this.running = false;
+    this.started = false;
+    this.paused = false;
+    this.gameOver = false;
+    this.skipNextUpdate = true;
+    this.hudPublishClock = 0;
+    this.cameraController?.snapTo({
+      x: WORLD_WIDTH / 2,
+      y: WORLD_HEIGHT / 2,
+    });
     this.publishStatus();
+    this.publishHud();
+    this.sceneView?.render(this.state);
+    this.sceneView?.playIntroReveal();
+  }
+
+  setMasterVolume(volume: number): void {
+    this.masterVolume = clampMasterVolume(volume);
+    if (this.sceneView) this.sound.volume = this.masterVolume;
   }
 
   steer(direction: CardinalDirection): void {
-    if (!this.started || this.gameOver) return;
+    if (!this.running || this.paused) return;
     setCardinalDirection(this.state, direction);
   }
 
   private aimAt(point: Point): void {
-    if (!this.started || this.gameOver) return;
+    if (!this.running || this.paused) return;
     steerToward(this.state, point);
   }
 
@@ -142,6 +178,8 @@ export class OuroborosScene extends Phaser.Scene {
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
+    if (this.isFormControl(event.target)) return;
+
     const action = actionForKey(event.key);
     if (!action) return;
 
@@ -149,6 +187,32 @@ export class OuroborosScene extends Phaser.Scene {
     if (action.type === "steer") this.steer(action.direction);
     if (action.type === "toggle-pause") this.togglePause();
   }
+
+  private isFormControl(target: EventTarget | null): boolean {
+    return (
+      target instanceof Element &&
+      Boolean(
+        target.closest(
+          "button, input, select, textarea, a, [contenteditable='true']",
+        ),
+      )
+    );
+  }
+
+  private setPaused(paused: boolean): void {
+    if (this.paused === paused) return;
+    this.paused = paused;
+    if (!paused) this.skipNextUpdate = true;
+    this.publishStatus();
+  }
+
+  private handleVisibilityChange = (): void => {
+    if (document.hidden) this.pauseRound();
+  };
+
+  private handleWindowBlur = (): void => {
+    this.pauseRound();
+  };
 
   private processEvents(events: readonly GameEvent[]): void {
     if (events.length === 0) return;
@@ -191,6 +255,11 @@ export class OuroborosScene extends Phaser.Scene {
     this.input.off("pointerdown", this.handlePointerDown, this);
     this.input.off("pointermove", this.handlePointerMove, this);
     this.input.keyboard?.off("keydown", this.handleKeyDown, this);
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange,
+    );
+    window.removeEventListener("blur", this.handleWindowBlur);
     this.sceneView?.destroy();
     this.sceneView = null;
     this.cameraController = null;

@@ -31,6 +31,7 @@ public/
 src/
 ├── app/                         # 应用入口，只负责装配
 ├── features/ouroboros/
+│   ├── audio/                   # 音频偏好与安全持久化
 │   ├── components/              # Vue 展示组件
 │   ├── composables/             # Vue 与 Phaser 生命周期协调
 │   ├── engine/                  # 纯 TypeScript 玩法规则
@@ -49,6 +50,7 @@ src/
 
 - 鼠标点击或拖动、触屏拖动：连续转向
 - `WASD` / 方向键：四方向转向
-- `Space`：暂停或继续
+- `Space` / `Esc` / `P`：暂停或继续
+- 暂停菜单：继续游戏、结束本局、调整总音量或静音
 
 生产构建输出到 `dist/`，可部署到任意静态站点。
