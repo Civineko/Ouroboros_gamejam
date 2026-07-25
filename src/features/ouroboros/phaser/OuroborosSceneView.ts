@@ -16,6 +16,7 @@ const COLORS = {
 
 const TAIL_END_INDEX = 12;
 const BODY_TAIL_OVERLAP = 2;
+const ENEMY_VISUAL_DIAMETER_SCALE = 3;
 
 interface EnemyView {
   container: Phaser.GameObjects.Container;
@@ -261,7 +262,11 @@ export class OuroborosSceneView {
     if (!first) return;
 
     this.ring.fillStyle(COLORS.bodyFlash, game.closureFlash * 0.2);
-    this.ring.lineStyle(7, 0xfff5ca, game.closureFlash);
+    this.ring.lineStyle(
+      BODY_WIDTH + 4,
+      COLORS.bodyOutline,
+      game.closureFlash * 0.72,
+    );
     this.ring.beginPath();
     this.ring.moveTo(first.x, first.y);
     for (let index = 1; index < game.lastRing.length; index += 1) {
@@ -270,6 +275,8 @@ export class OuroborosSceneView {
     }
     this.ring.closePath();
     this.ring.fillPath();
+    this.ring.strokePath();
+    this.ring.lineStyle(BODY_WIDTH, 0xfff5ca, game.closureFlash);
     this.ring.strokePath();
   }
 
@@ -304,18 +311,19 @@ export class OuroborosSceneView {
     for (const enemy of game.enemies) {
       const view = this.enemies.get(enemy.id) ?? this.createEnemyView(enemy);
       const pulse = Math.sin(game.elapsed * 3.4 + enemy.phase) * 1.5;
-      const size = (enemy.size + pulse) * 4.2;
+      const diameter =
+        (enemy.size + pulse) * ENEMY_VISUAL_DIAMETER_SCALE;
       const movementAngle = Math.atan2(enemy.velocityY, enemy.velocityX);
 
       view.container
         .setPosition(enemy.x, enemy.y)
         .setRotation(enemy.kind === "stationary" ? 0 : movementAngle);
       if (enemy.kind === "stationary") {
-        view.image.setDisplaySize(size, size);
+        view.image.setDisplaySize(diameter, diameter);
       } else if (enemy.kind === "wanderer") {
-        view.image.setDisplaySize(size * 1.2, size * 0.86);
+        view.image.setDisplaySize(diameter * 1.2, diameter * 0.86);
       } else {
-        view.image.setDisplaySize(size * 1.25, size * 0.78);
+        view.image.setDisplaySize(diameter * 1.25, diameter * 0.78);
       }
     }
   }
@@ -350,7 +358,8 @@ export class OuroborosSceneView {
         .setPosition(powerUp.x, powerUp.y)
         .setScale(pulse)
         .setAlpha(expiryAlpha);
-      view.image.setDisplaySize(powerUp.radius * 4.5, powerUp.radius * 4.5);
+      const displayDiameter = (powerUp.radius + 6) * 2;
+      view.image.setDisplaySize(displayDiameter, displayDiameter);
     }
   }
 
