@@ -13,7 +13,7 @@ export const AUDIO_PREFERENCES_STORAGE_KEY =
 
 export const DEFAULT_AUDIO_PREFERENCES: Readonly<AudioPreferences> =
   Object.freeze({
-    musicVolume: 0.45,
+    musicVolume: 0.05,
     effectsVolume: 0.8,
   });
 

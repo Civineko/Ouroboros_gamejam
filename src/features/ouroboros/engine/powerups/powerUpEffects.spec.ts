@@ -32,15 +32,14 @@ describe("power-up effects", () => {
     expect(powerUpModifiers(game).enemySpeed).toBe(0.55);
   });
 
-  it("derives haste and resonance modifiers without changing base state", () => {
+  it("derives haste modifiers without changing base state", () => {
     const game = createGameState(fixedRandom);
     applyPowerUp(game, "haste");
-    applyPowerUp(game, "resonance");
 
     expect(powerUpModifiers(game)).toMatchObject({
       snakeSpeed: 1.18,
       snakeTurn: 1.12,
-      closureDistance: 40,
+      closureDistance: 25,
     });
   });
 

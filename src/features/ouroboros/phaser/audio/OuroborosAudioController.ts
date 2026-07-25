@@ -22,7 +22,7 @@ interface ToneOptions {
 }
 
 const MINIMUM_GAIN = 0.0001;
-const BGM_PATH = "/assets/ouroboros/audio/bgm_prelude.mp3";
+const BGM_PATH = "/assets/ouroboros/audio/bgm_cosy_bossa.ogg";
 
 function createBrowserAudioContext(): AudioContext | null {
   const audioGlobal = globalThis as typeof globalThis & AudioContextGlobal;
@@ -45,7 +45,7 @@ export class OuroborosAudioController {
   private effectsOutput: GainNode | null = null;
   private musicNodes: OscillatorNode[] = [];
   private musicGraphNodes: AudioNode[] = [];
-  private musicVolume = 0.45;
+  private musicVolume = 0.05;
   private effectsVolume = 0.8;
   private musicRequested = false;
   private musicPaused = true;
@@ -222,9 +222,6 @@ export class OuroborosAudioController {
         break;
       case "powerup-haste":
         this.chime([520, 780, 1040], 0.03, 0.2, cueGain);
-        break;
-      case "powerup-resonance":
-        this.chime([330, 495, 742], 0.055, 0.32, cueGain);
         break;
       case "game-over":
         this.chime([330, 247, 165], 0.13, 0.48, cueGain);

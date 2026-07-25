@@ -18,7 +18,7 @@ export interface PowerUpModifiers {
 }
 
 function isTimedKind(kind: PowerUpKind): kind is TimedPowerUpKind {
-  return kind === "stasis" || kind === "haste" || kind === "resonance";
+  return kind === "stasis" || kind === "haste";
 }
 
 function activateEffect(
@@ -72,7 +72,7 @@ export function powerUpModifiers(game: GameState): PowerUpModifiers {
     snakeSpeed: activeKinds.has("haste") ? 1.18 : 1,
     snakeTurn: activeKinds.has("haste") ? 1.12 : 1,
     enemySpeed: activeKinds.has("stasis") ? 0.55 : 1,
-    closureDistance: activeKinds.has("resonance") ? 40 : BASE_CLOSURE_DISTANCE,
+    closureDistance: BASE_CLOSURE_DISTANCE,
   };
 }
 
