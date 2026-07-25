@@ -6,11 +6,7 @@ export interface OuroborosStageExpose {
 
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import {
-  CircleDotDashed,
-  Play,
-  RotateCcw,
-} from "@lucide/vue";
+import { Play, RotateCcw } from "@lucide/vue";
 import type { HudSnapshot } from "../engine/types";
 import PauseMenu from "./PauseMenu.vue";
 
@@ -75,10 +71,9 @@ defineExpose<OuroborosStageExpose>({
       </div>
 
       <div v-if="gameOver" class="stage-cover">
-        <CircleDotDashed class="coral" :size="48" :stroke-width="1.5" />
-        <p>THE LOOP IS BROKEN</p>
-        <h2>衔尾之环断开了</h2>
-        <span class="final-score">本局净化 {{ hud.kills }} 个敌人，蛇身成长至 {{ hud.length }}</span>
+        <span class="final-score">
+          本局消灭 {{ hud.kills }} 个敌人，蛇身成长至 {{ hud.length }}
+        </span>
         <button type="button" class="primary-command" @click="emit('restart')">
           <RotateCcw :size="17" />
           重新开始
@@ -173,22 +168,6 @@ defineExpose<OuroborosStageExpose>({
   animation: brand-arrival 650ms cubic-bezier(0.2, 0.75, 0.25, 1) 780ms both;
 }
 
-.stage-cover > svg {
-  margin-bottom: 14px;
-  color: var(--teal-deep);
-}
-
-.stage-cover > svg.coral {
-  color: var(--coral);
-}
-
-.stage-cover p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 9px;
-  font-weight: 900;
-}
-
 .stage-cover h1 {
   margin: 0;
   color: #fffdf7;
@@ -200,14 +179,6 @@ defineExpose<OuroborosStageExpose>({
   text-shadow:
     0 4px 0 rgba(25, 37, 49, 0.2),
     0 10px 24px rgba(25, 37, 49, 0.2);
-}
-
-.stage-cover h2 {
-  margin: 8px 0 22px;
-  font-family: Georgia, "Songti SC", serif;
-  font-size: 34px;
-  font-weight: 500;
-  letter-spacing: 0;
 }
 
 .stage-cover-dark {
@@ -225,7 +196,7 @@ defineExpose<OuroborosStageExpose>({
 }
 
 .final-score {
-  margin: -11px 0 20px;
+  margin: 0 0 20px;
   color: var(--ink-soft);
   font-size: 11px;
   font-weight: 700;
@@ -315,17 +286,6 @@ defineExpose<OuroborosStageExpose>({
 @media (max-width: 560px) {
   .stage-cover {
     padding: 14px;
-  }
-
-  .stage-cover > svg {
-    width: 36px;
-    height: 36px;
-    margin-bottom: 8px;
-  }
-
-  .stage-cover h2 {
-    margin: 5px 0 13px;
-    font-size: 24px;
   }
 
   .stage-cover h1 {
