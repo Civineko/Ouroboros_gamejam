@@ -16,7 +16,6 @@ const emit = defineEmits<{
   toggleEffectsMute: [];
 }>();
 
-const dialog = useTemplateRef<HTMLElement>("dialog");
 const resumeButton = useTemplateRef<HTMLButtonElement>("resumeButton");
 const musicMuted = computed(() => musicVolume === 0);
 const effectsMuted = computed(() => effectsVolume === 0);
@@ -29,31 +28,10 @@ function inputVolume(event: Event): number {
 }
 
 function handleDialogKeydown(event: KeyboardEvent): void {
-  if (["Escape", "Esc", "p", "P"].includes(event.key)) {
-    event.preventDefault();
-    event.stopPropagation();
-    emit("resume");
-    return;
-  }
-
-  if (event.key !== "Tab") return;
-
-  const focusable = Array.from(
-    dialog.value?.querySelectorAll<HTMLElement>(
-      "button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex='-1'])",
-    ) ?? [],
-  );
-  const first = focusable[0];
-  const last = focusable.at(-1);
-  if (!first || !last) return;
-
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-  }
+  if (!["Escape", "Esc", "p", "P"].includes(event.key)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  emit("resume");
 }
 
 onMounted(() => {
@@ -63,7 +41,6 @@ onMounted(() => {
 
 <template>
   <section
-    ref="dialog"
     class="pause-dialog"
     role="dialog"
     aria-modal="true"
@@ -168,26 +145,16 @@ onMounted(() => {
 
 <style scoped>
 .pause-dialog {
-  position: relative;
   width: min(380px, 100%);
   max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   padding: 22px;
   color: var(--ink);
   overflow-y: auto;
   text-align: left;
-  background: var(--paper);
-  border: 3px solid var(--ink);
-  border-radius: 6px;
-  box-shadow: 7px 8px 0 rgba(13, 29, 32, 0.78);
-}
-
-.pause-dialog::after {
-  position: absolute;
-  inset: 4px;
-  pointer-events: none;
-  content: "";
-  border: 1px solid rgba(23, 44, 47, 0.28);
-  border-radius: 2px;
+  background: rgba(255, 253, 247, 0.97);
+  border: 1px solid rgba(255, 253, 247, 0.72);
+  border-radius: 8px;
+  box-shadow: 0 18px 46px rgba(25, 37, 49, 0.38);
 }
 
 .dialog-header {
@@ -204,21 +171,19 @@ onMounted(() => {
   place-items: center;
   color: var(--ink);
   background: var(--amber);
-  border: 2px solid var(--ink);
-  border-radius: 5px;
-  box-shadow: 2px 3px 0 rgba(23, 44, 47, 0.24);
+  border-radius: 8px;
 }
 
 .dialog-header p {
   margin: 0 0 3px;
-  color: var(--coral);
+  color: var(--ink-soft);
   font-size: 9px;
   font-weight: 900;
 }
 
 .dialog-header h2 {
   margin: 0;
-  font-family: "STKaiti", "KaiTi", "FangSong", serif;
+  font-family: Georgia, "Songti SC", serif;
   font-size: 25px;
   font-weight: 500;
   line-height: 1.15;
@@ -227,8 +192,8 @@ onMounted(() => {
 
 .audio-settings {
   margin: 20px 0;
-  border-top: 2px solid var(--line);
-  border-bottom: 2px solid var(--line);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .volume-setting {
@@ -278,9 +243,8 @@ onMounted(() => {
   color: var(--ink);
   cursor: pointer;
   background: var(--paper-strong);
-  border: 2px solid var(--ink);
-  border-radius: 5px;
-  box-shadow: 2px 3px 0 rgba(23, 44, 47, 0.2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   touch-action: manipulation;
 }
 
@@ -290,58 +254,13 @@ onMounted(() => {
 }
 
 input[type="range"] {
-  appearance: none;
   width: 100%;
   min-width: 0;
   height: 46px;
   margin: 0;
-  color: var(--teal-deep);
-  background: transparent;
+  accent-color: var(--teal-deep);
   cursor: pointer;
   touch-action: pan-x;
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 8px;
-  background: var(--paper-strong);
-  border: 2px solid var(--ink);
-  border-radius: 4px;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  width: 22px;
-  height: 22px;
-  margin-top: -9px;
-  appearance: none;
-  background: var(--teal);
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-}
-
-input[type="range"]::-moz-range-track {
-  height: 5px;
-  background: var(--paper-strong);
-  border: 2px solid var(--ink);
-  border-radius: 4px;
-}
-
-input[type="range"]::-moz-range-progress {
-  height: 5px;
-  background: var(--teal);
-  border-radius: 4px;
-}
-
-input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  background: var(--teal);
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-}
-
-input[type="range"]:focus-visible {
-  outline: 3px solid var(--amber);
-  outline-offset: 2px;
 }
 
 .dialog-actions {
@@ -361,27 +280,20 @@ input[type="range"]:focus-visible {
   font-size: 12px;
   font-weight: 900;
   cursor: pointer;
-  border-radius: 5px;
-  box-shadow: 2px 3px 0 rgba(23, 44, 47, 0.24);
+  border-radius: 8px;
   touch-action: manipulation;
 }
 
 .dialog-command.primary-command {
   color: var(--ink);
-  background: var(--teal);
-  border: 2px solid var(--ink);
+  background: var(--amber);
+  border: 1px solid color-mix(in srgb, var(--amber) 72%, var(--ink));
 }
 
 .end-command {
   color: var(--coral);
-  background: var(--surface);
-  border: 2px solid var(--coral);
-}
-
-.dialog-command:active,
-.mute-command:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--coral) 48%, transparent);
 }
 
 @media (max-width: 430px), (max-height: 470px) {
