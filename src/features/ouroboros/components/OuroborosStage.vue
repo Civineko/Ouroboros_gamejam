@@ -8,16 +8,18 @@ export interface OuroborosStageExpose {
 import { useTemplateRef } from "vue";
 import {
   CircleDotDashed,
-  Pause,
   Play,
   RotateCcw,
 } from "@lucide/vue";
 import type { HudSnapshot } from "../engine/types";
+import PauseMenu from "./PauseMenu.vue";
 
 defineProps<{
   started: boolean;
   paused: boolean;
   gameOver: boolean;
+  masterVolume: number;
+  muted: boolean;
   hud: HudSnapshot;
 }>();
 
@@ -25,6 +27,9 @@ const emit = defineEmits<{
   start: [];
   pause: [];
   restart: [];
+  end: [];
+  volumeChange: [volume: number];
+  toggleMute: [];
 }>();
 
 const container = useTemplateRef<HTMLElement>("container");
@@ -49,13 +54,15 @@ defineExpose<OuroborosStageExpose>({
         </button>
       </div>
 
-      <div v-else-if="paused && !gameOver" class="stage-cover stage-cover-dark">
-        <Pause :size="38" fill="currentColor" aria-hidden="true" />
-        <h2>PAUSED</h2>
-        <button type="button" class="primary-command amber" @click="emit('pause')">
-          <Play :size="17" fill="currentColor" />
-          继续游戏
-        </button>
+      <div v-else-if="paused && !gameOver" class="stage-cover stage-cover-dark stage-cover-dialog">
+        <PauseMenu
+          :master-volume="masterVolume"
+          :muted="muted"
+          @resume="emit('pause')"
+          @end="emit('end')"
+          @volume-change="emit('volumeChange', $event)"
+          @toggle-mute="emit('toggleMute')"
+        />
       </div>
 
       <div v-else-if="gameOver" class="stage-cover">
@@ -113,6 +120,7 @@ defineExpose<OuroborosStageExpose>({
 .stage-cover {
   position: absolute;
   inset: 0;
+  z-index: 40;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -153,8 +161,13 @@ defineExpose<OuroborosStageExpose>({
   background: rgba(38, 59, 66, 0.82);
 }
 
-.stage-cover-dark > svg {
-  color: var(--amber);
+.stage-cover-dialog {
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  overflow-y: auto;
 }
 
 .final-score {

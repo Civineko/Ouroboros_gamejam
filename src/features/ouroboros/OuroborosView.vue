@@ -17,14 +17,19 @@ const game = useOuroborosGame(() => stage.value?.getContainer() ?? null);
       :started="game.started.value"
       :paused="game.paused.value"
       :game-over="game.gameOver.value"
+      :master-volume="game.masterVolume.value"
+      :muted="game.muted.value"
       :hud="game.hud.value"
       @start="game.start"
       @pause="game.togglePause"
       @restart="game.start"
+      @end="game.end"
+      @volume-change="game.setMasterVolume"
+      @toggle-mute="game.toggleMute"
     />
 
     <div
-      v-if="game.started.value && !game.gameOver.value"
+      v-if="game.started.value && !game.paused.value && !game.gameOver.value"
       class="game-topbar"
       aria-label="游戏状态"
     >

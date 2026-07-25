@@ -52,6 +52,7 @@ npm run build
 ```text
 src/app/                                      Vue 应用装配
 src/features/ouroboros/
+├── audio/                                    音频偏好与安全持久化
 ├── components/                               Vue 展示和用户意图
 ├── composables/                              Vue 与 Phaser 生命周期协调
 ├── engine/                                   纯 TypeScript 玩法规则

@@ -19,9 +19,11 @@ const DIRECTION_KEYS: Readonly<Record<string, CardinalDirection>> = {
   D: "right",
 };
 
+const PAUSE_KEYS: ReadonlySet<string> = new Set([" ", "Escape", "Esc", "p", "P"]);
+
 export function actionForKey(key: string): GameAction | null {
   const direction = DIRECTION_KEYS[key];
   if (direction) return { type: "steer", direction };
-  if (key === " ") return { type: "toggle-pause" };
+  if (PAUSE_KEYS.has(key)) return { type: "toggle-pause" };
   return null;
 }
