@@ -2,6 +2,10 @@
 
 这是从 `boke_jam/app/ouroboros` 单独重构出的 Vue 3 + Phaser 前端项目。项目只包含“衔尾蛇”游戏，不包含原压缩包里的三消页面、Next.js、vinext、Cloudflare Worker 或数据库代码。
 
+## 协作流程测试
+
+- 2026-07-25：README-only PR 流程测试。
+
 ## 启动
 
 要求 Node.js `>=22.13.0`。
@@ -44,4 +48,3 @@ src/
 - `Space`：暂停或继续
 
 生产构建输出到 `dist/`，可部署到任意静态站点。
-
