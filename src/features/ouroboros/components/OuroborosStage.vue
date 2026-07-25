@@ -8,6 +8,7 @@ export interface OuroborosStageExpose {
 import { useTemplateRef } from "vue";
 import { Play } from "@lucide/vue";
 import type { HudSnapshot } from "../engine/types";
+import { OUROBOROS_UI_ART } from "../ui/uiArtCatalog";
 import GameOverScreen from "./GameOverScreen.vue";
 import PauseMenu from "./PauseMenu.vue";
 
@@ -46,7 +47,15 @@ defineExpose<OuroborosStageExpose>({
       <Transition name="intro-cover">
         <div v-if="!started" class="stage-cover stage-cover-intro">
           <div class="intro-brand">
-            <h1>圈一圈</h1>
+            <h1 class="intro-title">
+              <img
+                class="intro-logo"
+                :src="OUROBOROS_UI_ART.mainMenuLogo"
+                width="1236"
+                height="619"
+                alt="圈一圈"
+              />
+            </h1>
             <button type="button" class="primary-command" @click="emit('start')">
               <Play :size="17" fill="currentColor" />
               开始游戏
@@ -166,17 +175,19 @@ defineExpose<OuroborosStageExpose>({
   animation: brand-arrival 650ms cubic-bezier(0.2, 0.75, 0.25, 1) 780ms both;
 }
 
-.stage-cover h1 {
+.intro-title {
+  display: block;
+  width: min(820px, 88vw, 116dvh);
   margin: 0;
-  color: var(--surface);
-  font-family: "Dymon ShouXieTi", "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: 64px;
-  font-weight: 400;
-  line-height: 1;
+  line-height: 0;
   letter-spacing: 0;
-  text-shadow:
-    0 3px 0 var(--ink),
-    3px 5px 0 rgba(23, 44, 47, 0.54);
+}
+
+.intro-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 9px 0 rgba(23, 44, 47, 0.3));
 }
 
 .stage-cover-dark {
@@ -302,18 +313,11 @@ defineExpose<OuroborosStageExpose>({
       max(34px, calc(env(safe-area-inset-bottom) + 7dvh));
   }
 
-  .stage-cover h1 {
-    font-size: 42px;
-  }
 }
 
 @media (max-width: 560px) {
   .stage-cover {
     padding: 14px;
-  }
-
-  .stage-cover h1 {
-    font-size: 50px;
   }
 
   .primary-command {

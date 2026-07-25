@@ -33,7 +33,7 @@
 - 平台能力（文件、存档、振动、系统返回、窗口控制等）必须通过独立适配器进入，`engine/` 不得直接调用 Windows 或 Android API。
 - 音频、暂停和计时必须正确响应窗口失焦、应用切后台与恢复，恢复时不得补跑超大 `delta`。
 - 新依赖必须确认可在桌面打包壳和 Android WebView 中工作；不确定时先做最小打包验证。
-- 当前打包技术和命令尚未在仓库中固定。选定桌面与 Android 打包方案后，必须把配置、命令、签名/产物说明和 CI 验证补入本文件与 README，不能只保存在个人环境。
+- 桌面壳固定使用 Electron + electron-builder，Android 壳固定使用 Capacitor。两端都只装载 `dist/`，不得复制玩法代码或建立第二套前端入口。具体命令、签名和产物说明见 `docs/PACKAGING.md`。
 
 ## 常用命令
 
@@ -43,9 +43,13 @@ npm run dev
 npm run check
 npm test
 npm run build
+npm run verify
+npm run package:mac
+npm run package:win
+npm run package:android
 ```
 
-合并前至少执行 `npm run check`、`npm test` 和 `npm run build`。涉及画面、输入、相机或资源时，还要在浏览器中开始一局并做桌面窗口与 Android 尺寸/触摸检查。打包链落地后，发布验收必须额外生成并安装测试 `.exe` 与 `.apk`。
+合并前至少执行 `npm run verify`。涉及画面、输入、相机或资源时，还要在浏览器中开始一局并做桌面窗口与 Android 尺寸/触摸检查。发布验收必须额外生成并安装测试 `.exe` 与 `.apk`。
 
 ## 目录与职责
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, useTemplateRef } from "vue";
-import { OUROBOROS_UI_ART } from "../ui/uiArtCatalog";
+import { LogOut, Music, Play, Volume2, VolumeX } from "@lucide/vue";
 
 const { musicVolume, effectsVolume } = defineProps<{
   musicVolume: number;
@@ -24,8 +24,7 @@ const musicPercent = computed(() => Math.round(musicVolume * 100));
 const effectsPercent = computed(() => Math.round(effectsVolume * 100));
 
 function inputVolume(event: Event): number {
-  const input = event.currentTarget as HTMLInputElement;
-  return input.valueAsNumber;
+  return (event.currentTarget as HTMLInputElement).valueAsNumber;
 }
 
 function handleDialogKeydown(event: KeyboardEvent): void {
@@ -70,80 +69,96 @@ onMounted(() => {
     aria-labelledby="pause-title"
     @keydown="handleDialogKeydown"
   >
-    <h2 id="pause-title" class="visually-hidden">游戏已暂停</h2>
-    <img
-      class="pause-art"
-      :src="OUROBOROS_UI_ART.pauseControls"
-      alt=""
-      aria-hidden="true"
-      draggable="false"
-    />
+    <div class="pause-content">
+      <header class="pause-heading">
+        <span>PAUSED</span>
+        <h2 id="pause-title">游戏暂停</h2>
+      </header>
 
-    <button
-      type="button"
-      class="mute-command music-mute"
-      :aria-label="musicMuted ? '开启音乐' : '关闭音乐'"
-      :title="musicMuted ? '开启音乐' : '关闭音乐'"
-      :aria-pressed="musicMuted"
-      @click="emit('toggleMusicMute')"
-    >
-      <span class="visually-hidden">{{ musicMuted ? "开启音乐" : "关闭音乐" }}</span>
-    </button>
-    <output class="visually-hidden" for="music-volume">{{ musicPercent }}%</output>
-    <input
-      id="music-volume"
-      class="volume-range music-range"
-      type="range"
-      min="0"
-      max="1"
-      step="0.05"
-      :value="musicVolume"
-      :style="{ '--volume': `${musicPercent}%` }"
-      aria-label="音乐音量"
-      @input="emit('musicVolumeChange', inputVolume($event))"
-      @keydown.stop="handleDialogKeydown"
-    />
+      <div class="volume-list">
+        <div class="volume-control">
+          <button
+            type="button"
+            class="volume-label"
+            :aria-label="musicMuted ? '开启音乐' : '关闭音乐'"
+            :title="musicMuted ? '开启音乐' : '关闭音乐'"
+            :aria-pressed="musicMuted"
+            @click="emit('toggleMusicMute')"
+          >
+            <VolumeX v-if="musicMuted" :size="30" aria-hidden="true" />
+            <Music v-else :size="30" aria-hidden="true" />
+            <span>音乐</span>
+          </button>
+          <div class="range-shell">
+            <input
+              id="music-volume"
+              class="volume-range"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              :value="musicVolume"
+              :style="{ '--volume': `${musicPercent}%` }"
+              aria-label="音乐音量"
+              @input="emit('musicVolumeChange', inputVolume($event))"
+              @keydown.stop="handleDialogKeydown"
+            />
+            <output for="music-volume">{{ musicPercent }}%</output>
+          </div>
+        </div>
 
-    <button
-      type="button"
-      class="mute-command effects-mute"
-      :aria-label="effectsMuted ? '开启音效' : '关闭音效'"
-      :title="effectsMuted ? '开启音效' : '关闭音效'"
-      :aria-pressed="effectsMuted"
-      @click="emit('toggleEffectsMute')"
-    >
-      <span class="visually-hidden">{{ effectsMuted ? "开启音效" : "关闭音效" }}</span>
-    </button>
-    <output class="visually-hidden" for="effects-volume">{{ effectsPercent }}%</output>
-    <input
-      id="effects-volume"
-      class="volume-range effects-range"
-      type="range"
-      min="0"
-      max="1"
-      step="0.05"
-      :value="effectsVolume"
-      :style="{ '--volume': `${effectsPercent}%` }"
-      aria-label="音效音量"
-      @input="emit('effectsVolumeChange', inputVolume($event))"
-      @keydown.stop="handleDialogKeydown"
-    />
+        <div class="volume-control">
+          <button
+            type="button"
+            class="volume-label"
+            :aria-label="effectsMuted ? '开启音效' : '关闭音效'"
+            :title="effectsMuted ? '开启音效' : '关闭音效'"
+            :aria-pressed="effectsMuted"
+            @click="emit('toggleEffectsMute')"
+          >
+            <VolumeX v-if="effectsMuted" :size="30" aria-hidden="true" />
+            <Volume2 v-else :size="30" aria-hidden="true" />
+            <span>音效</span>
+          </button>
+          <div class="range-shell">
+            <input
+              id="effects-volume"
+              class="volume-range"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              :value="effectsVolume"
+              :style="{ '--volume': `${effectsPercent}%` }"
+              aria-label="音效音量"
+              @input="emit('effectsVolumeChange', inputVolume($event))"
+              @keydown.stop="handleDialogKeydown"
+            />
+            <output for="effects-volume">{{ effectsPercent }}%</output>
+          </div>
+        </div>
+      </div>
 
-    <button
-      ref="resumeButton"
-      type="button"
-      class="dialog-command resume-command"
-      @click="emit('resume')"
-    >
-      <span class="visually-hidden">继续游戏</span>
-    </button>
-    <button
-      type="button"
-      class="dialog-command end-command"
-      @click="emit('end')"
-    >
-      <span class="visually-hidden">结束游戏</span>
-    </button>
+      <div class="pause-actions">
+        <button
+          ref="resumeButton"
+          type="button"
+          class="dialog-command resume-command"
+          @click="emit('resume')"
+        >
+          <Play :size="22" fill="currentColor" aria-hidden="true" />
+          继续游戏
+        </button>
+        <button
+          type="button"
+          class="dialog-command end-command"
+          @click="emit('end')"
+        >
+          <LogOut :size="22" aria-hidden="true" />
+          退出游戏
+        </button>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -151,97 +166,153 @@ onMounted(() => {
 .pause-dialog {
   position: relative;
   width: min(
-    740px,
-    calc(100vw - max(16px, env(safe-area-inset-left)) - max(16px, env(safe-area-inset-right))),
-    calc((100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom))) * 1.9577)
+    680px,
+    calc(100vw - max(20px, env(safe-area-inset-left)) - max(20px, env(safe-area-inset-right)))
   );
-  aspect-ratio: 740 / 378;
-  overflow: visible;
+  max-height: calc(
+    100dvh - max(20px, env(safe-area-inset-top)) - max(20px, env(safe-area-inset-bottom))
+  );
+  padding: 7px;
+  overflow: hidden auto;
   isolation: isolate;
-  background: transparent;
-  border: 0;
+  color: #f7f6ff;
+  background: linear-gradient(145deg, #aaa6ef, #4d459d 52%, #8580dc);
+  clip-path: polygon(7% 0, 93% 0, 100% 10%, 100% 90%, 93% 100%, 7% 100%, 0 90%, 0 10%);
+  filter: drop-shadow(0 20px 30px rgba(3, 8, 32, 0.5));
 }
 
-.pause-art {
+.pause-content {
+  position: relative;
+  display: grid;
+  gap: 22px;
+  padding: 30px 36px 34px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(30, 214, 223, 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(77, 69, 157, 0.96), rgba(23, 23, 82, 0.98));
+  clip-path: polygon(6.5% 0, 93.5% 0, 100% 9%, 100% 91%, 93.5% 100%, 6.5% 100%, 0 91%, 0 9%);
+}
+
+.pause-content::before,
+.pause-content::after {
   position: absolute;
-  inset: 0;
-  z-index: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  user-select: none;
-  object-fit: contain;
-}
-
-.mute-command,
-.dialog-command,
-.volume-range {
-  position: absolute;
-  z-index: 1;
-}
-
-.mute-command,
-.dialog-command {
-  padding: 0;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-  border-radius: 12px;
-  touch-action: manipulation;
-  transition:
-    background-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
-}
-
-.mute-command:hover,
-.dialog-command:hover {
-  background: rgba(255, 248, 190, 0.1);
-  box-shadow: inset 0 0 0 3px rgba(245, 218, 112, 0.56);
-}
-
-.mute-command:focus-visible,
-.dialog-command:focus-visible,
-.volume-range:focus-visible {
-  outline: 4px solid #f5da70;
-  outline-offset: 3px;
-}
-
-.music-mute {
-  top: 3%;
-  left: 2%;
-  width: 41%;
-  height: 26%;
-}
-
-.effects-mute {
-  top: 37%;
-  left: 2%;
-  width: 41%;
-  height: 26%;
-}
-
-.mute-command[aria-pressed="true"]::after {
-  position: absolute;
-  top: 50%;
-  left: 22%;
-  width: 56%;
-  height: 5px;
+  top: 23px;
+  width: 42px;
+  height: 3px;
   content: "";
-  background: #f5da70;
-  border: 2px solid #343184;
-  border-radius: 3px;
-  box-shadow: 0 0 7px rgba(245, 218, 112, 0.68);
-  transform: translateY(-50%) rotate(-12deg);
+  background: #1ed6df;
+  box-shadow: 0 0 12px rgba(30, 214, 223, 0.9);
+}
+
+.pause-content::before {
+  left: 22px;
+  transform: rotate(-18deg);
+}
+
+.pause-content::after {
+  right: 22px;
+  transform: rotate(18deg);
+}
+
+.pause-heading {
+  position: relative;
+  text-align: center;
+}
+
+.pause-heading::after {
+  display: block;
+  width: min(300px, 68%);
+  height: 3px;
+  margin: 15px auto 0;
+  content: "";
+  background: linear-gradient(90deg, transparent, #1ed6df 24% 76%, transparent);
+  box-shadow: 0 0 12px rgba(30, 214, 223, 0.55);
+}
+
+.pause-heading span {
+  display: block;
+  margin-bottom: 4px;
+  color: #aaa6ef;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.pause-heading h2 {
+  margin: 0;
+  color: #ffd66b;
+  font-family: "Dymon ShouXieTi", "Kaiti SC", "PingFang SC", sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow:
+    0 3px 0 #4d459d,
+    0 0 16px rgba(255, 214, 107, 0.26);
+}
+
+.volume-list {
+  display: grid;
+  gap: 14px;
+}
+
+.volume-control {
+  display: grid;
+  min-height: 92px;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(240px, 1.4fr);
+  gap: 8px;
+}
+
+.volume-label,
+.range-shell,
+.dialog-command {
+  position: relative;
+  color: #f7f6ff;
+  background: #4d459d;
+  border: 4px solid #aaa6ef;
+  clip-path: polygon(8% 0, 92% 0, 100% 18%, 100% 82%, 92% 100%, 8% 100%, 0 82%, 0 18%);
+  box-shadow: inset 0 0 0 3px rgba(23, 23, 82, 0.5);
+}
+
+.volume-label {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 18px;
+  color: #ffd66b;
+  font-size: 23px;
+  font-weight: 900;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.volume-label[aria-pressed="true"] {
+  color: rgba(247, 246, 255, 0.55);
+  background: #29275f;
+}
+
+.range-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  background: #29275f;
+}
+
+.range-shell output {
+  color: #c9c7f8;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .volume-range {
-  left: 57%;
-  width: 27%;
+  width: 100%;
   min-width: 0;
-  height: 14%;
-  min-height: 44px;
+  height: 44px;
   padding: 0;
   margin: 0;
   appearance: none;
@@ -250,108 +321,203 @@ onMounted(() => {
   touch-action: pan-x;
 }
 
-.music-range {
-  top: 10%;
-}
-
-.effects-range {
-  top: 43.5%;
-}
-
 .volume-range::-webkit-slider-runnable-track {
-  height: 6px;
+  height: 8px;
   background: linear-gradient(
     to right,
-    rgba(34, 214, 220, 0.78) 0 var(--volume),
-    transparent var(--volume) 100%
+    #1ed6df 0 var(--volume),
+    rgba(170, 166, 239, 0.25) var(--volume) 100%
   );
-  border: 0;
-  border-radius: 3px;
+  border: 2px solid #aaa6ef;
+  border-radius: 5px;
+  box-shadow: 0 0 9px rgba(30, 214, 223, 0.42);
 }
 
 .volume-range::-webkit-slider-thumb {
-  width: 24px;
-  height: 24px;
-  margin-top: -9px;
+  width: 28px;
+  height: 28px;
+  margin-top: -12px;
   appearance: none;
-  background: #f5da70;
-  border: 3px solid #343184;
+  background: #f7f6ff;
+  border: 7px solid #1ed6df;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(34, 214, 220, 0.7);
+  box-shadow: 0 0 12px rgba(30, 214, 223, 0.72);
 }
 
 .volume-range::-moz-range-track {
   height: 6px;
-  background: transparent;
-  border: 0;
-  border-radius: 3px;
+  background: rgba(170, 166, 239, 0.25);
+  border: 2px solid #aaa6ef;
+  border-radius: 5px;
 }
 
 .volume-range::-moz-range-progress {
   height: 6px;
-  background: rgba(34, 214, 220, 0.78);
-  border-radius: 3px;
+  background: #1ed6df;
+  border-radius: 5px;
 }
 
 .volume-range::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  background: #f5da70;
-  border: 3px solid #343184;
+  width: 16px;
+  height: 16px;
+  background: #f7f6ff;
+  border: 7px solid #1ed6df;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(34, 214, 220, 0.7);
+  box-shadow: 0 0 12px rgba(30, 214, 223, 0.72);
+}
+
+.pause-actions {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
 }
 
 .dialog-command {
-  top: 75%;
-  height: 21%;
-  min-height: 44px;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 66px;
+  padding: 0 20px;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
 }
 
 .resume-command {
-  left: 3%;
-  width: 39%;
+  color: #ffd66b;
+  border-color: #1ed6df;
 }
 
-.end-command {
-  left: 51%;
-  width: 45%;
+.volume-label:hover,
+.dialog-command:hover {
+  color: #ffd66b;
+  background: #5c53b1;
+  border-color: #1ed6df;
 }
 
-.dialog-command:active,
-.mute-command:active {
-  background: rgba(34, 214, 220, 0.14);
-  box-shadow: inset 0 0 0 3px rgba(34, 214, 220, 0.72);
-  transform: scale(0.97);
+.volume-label:active,
+.dialog-command:active {
+  transform: translateY(2px) scale(0.985);
 }
 
-.visually-hidden {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  padding: 0 !important;
-  margin: -1px !important;
-  overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
+.volume-label:focus-visible,
+.dialog-command:focus-visible,
+.volume-range:focus-visible {
+  outline: 4px solid #ffd66b;
+  outline-offset: 3px;
 }
 
-@media (max-width: 500px) {
-  .mute-command,
-  .dialog-command {
-    border-radius: 7px;
+@media (max-width: 620px) {
+  .pause-content {
+    gap: 16px;
+    padding: 24px 22px 26px;
   }
 
-  .volume-range::-webkit-slider-thumb {
+  .volume-control {
+    grid-template-columns: minmax(118px, 0.65fr) minmax(190px, 1.35fr);
+  }
+
+  .volume-label {
+    gap: 7px;
+    padding-inline: 10px;
+    font-size: 19px;
+  }
+
+  .range-shell {
+    grid-template-columns: minmax(0, 1fr) 42px;
+    gap: 7px;
+    padding-inline: 16px;
+  }
+}
+
+@media (max-height: 520px) {
+  .pause-dialog {
+    width: min(650px, calc(100vw - 24px));
+  }
+
+  .pause-content {
+    gap: 10px;
+    padding: 14px 22px 16px;
+  }
+
+  .pause-heading span {
+    display: none;
+  }
+
+  .pause-heading h2 {
+    font-size: 30px;
+  }
+
+  .pause-heading::after {
+    margin-top: 8px;
+  }
+
+  .volume-list {
+    gap: 8px;
+  }
+
+  .volume-control {
+    min-height: 64px;
+  }
+
+  .volume-label {
+    font-size: 18px;
+  }
+
+  .dialog-command {
+    min-height: 50px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 430px) {
+  .pause-dialog {
+    clip-path: polygon(5% 0, 95% 0, 100% 6%, 100% 94%, 95% 100%, 5% 100%, 0 94%, 0 6%);
+  }
+
+  .pause-content {
+    padding-inline: 16px;
+    clip-path: polygon(4% 0, 96% 0, 100% 5%, 100% 95%, 96% 100%, 4% 100%, 0 95%, 0 5%);
+  }
+
+  .pause-heading h2 {
+    font-size: 32px;
+  }
+
+  .volume-control {
+    min-height: 72px;
+    grid-template-columns: 105px minmax(0, 1fr);
+  }
+
+  .volume-label {
+    font-size: 17px;
+  }
+
+  .volume-label svg {
     width: 24px;
     height: 24px;
-    margin-top: -9px;
   }
 
-  .volume-range::-moz-range-thumb {
-    width: 22px;
-    height: 22px;
+  .range-shell {
+    grid-template-columns: minmax(0, 1fr) 36px;
+    padding-inline: 12px;
+  }
+
+  .range-shell output {
+    font-size: 11px;
+  }
+
+  .pause-actions {
+    grid-template-columns: 1fr;
+    gap: 9px;
   }
 }
 </style>

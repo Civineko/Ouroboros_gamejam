@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted, readonly, ref, shallowRef } from "vue";
+import { bindNativeAppLifecycle } from "../../../platform/nativeAppLifecycle";
 import {
   clampVolume,
   DEFAULT_AUDIO_PREFERENCES,
@@ -33,6 +34,7 @@ export function useOuroborosGame(
   const initialState = createGameState();
   const hud = shallowRef(snapshotHud(initialState));
   let runtime: OuroborosRuntime | null = null;
+  let stopNativeAppLifecycle: () => void = () => undefined;
 
   function start(): void {
     runtime?.scene.startRound();
@@ -118,10 +120,27 @@ export function useOuroborosGame(
       },
       initialState,
     );
+    stopNativeAppLifecycle = bindNativeAppLifecycle({
+      onPause() {
+        runtime?.scene.pauseRound();
+      },
+      onBack() {
+        if (gameOver.value) {
+          end();
+          return true;
+        }
+        if (started.value) {
+          togglePause();
+          return true;
+        }
+        return false;
+      },
+    });
     applyAudioPreferences();
   });
 
   onUnmounted(() => {
+    stopNativeAppLifecycle();
     runtime?.game.destroy(true);
     runtime = null;
   });

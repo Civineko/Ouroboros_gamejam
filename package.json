@@ -1,8 +1,11 @@
 {
   "name": "ouroboros-vue",
   "version": "1.0.0",
+  "description": "A Vue and Phaser Ouroboros game for desktop and Android.",
   "private": true,
   "type": "module",
+  "main": "electron/main.cjs",
+  "author": "Civineko",
   "engines": {
     "node": ">=22.13.0"
   },
@@ -10,17 +13,32 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vue-tsc --noEmit && vite build",
     "check": "vue-tsc --noEmit",
+    "verify": "npm run check && npm test && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "desktop:preview": "npm run build && electron .",
+    "package:mac": "npm run build && electron-builder --mac dir",
+    "package:win": "npm run build && electron-builder --win portable --x64",
+    "android:add": "cap add android",
+    "android:assets": "capacitor-assets generate --android --iconBackgroundColor '#263b42' --iconBackgroundColorDark '#263b42' --splashBackgroundColor '#466b8d' --splashBackgroundColorDark '#122428'",
+    "android:sync": "npm run build && cap sync android",
+    "package:android": "node scripts/package-android.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.4.2",
     "@lucide/vue": "1.26.0",
     "phaser": "^4.2.1",
     "vue": "3.5.40"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.2",
     "@types/node": "22.19.19",
     "@vitejs/plugin-vue": "6.0.8",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "typescript": "5.9.3",
     "vite": "8.1.5",
     "vitest": "4.1.10",

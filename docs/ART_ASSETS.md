@@ -27,6 +27,7 @@ public/assets/ouroboros/                       最终安装包内的运行时成
 ├── items/powerups/                           五种增益道具
 ├── effects/                                  命中、闭环与增益状态反馈
 ├── ui/                                       品牌与应用图标
+│   ├── main_menu/                            主菜单标题 Logo
 │   ├── pause/                                暂停菜单面板
 │   └── font_dymon_shouxieti.otf              “圈一圈”标题商用字体
 └── audio/
@@ -87,6 +88,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 | P1 | TODO | 通用增益拾取特效 | `effects/sheet_powerup_collect.png` | 单帧 `64x64`，6 帧横排 | `12-16fps`，单色可着色，五种道具按定义颜色复用 | 当前仅让场上道具直接消失 |
 | P1 | TODO | 增益激活光环 | `effects/fx_buff_aura.png` | `96x96` 透明 PNG | 单色可着色；护环常驻，疾行/共鸣短暂强调；凝滞仍以敌人色调反馈 | HUD 有倒计时，场内缺少持续状态反馈 |
 | P1 | READY | 暂停菜单交互面板 | `ui/pause/panel_pause_controls.png` | `740x378` 透明 PNG，约 `264KB` | 仅作视觉皮肤；音乐/音效牌、滑杆和底部按钮均由真实 DOM 控件承载，碰撞与音量逻辑不进入图片 | `PauseMenu.vue` 已通过集中式 `uiArtCatalog.ts` 接入 |
+| P2 | READY | 主菜单“圈一圈”标题 Logo | `ui/main_menu/logo_main_menu.png` | 原图 `1280x894`；运行时裁透明留白后为 `1236x619` 透明 PNG | 替代原文字标题；保持完整笔画，在 Windows 横屏及 Android 横、竖屏按可用空间等比缩放 | `OuroborosStage.vue` 已通过 `uiArtCatalog.ts` 集中接入 |
 | P2 | TODO | 品牌标志 | `ui/brand_mark.svg` | 正方形 SVG | 适配浅色背景和高 DPI，轮廓清晰 | Lucide `CircleDotDashed` |
 | P2 | TODO | favicon | `ui/favicon.svg` | `64x64` SVG | Windows 窗口和浏览器 `16px` 下可辨识 | 当前临时衔尾蛇图标 |
 
@@ -214,6 +216,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 ### P2 品牌与重复体验
 
+- [x] 将已交付的主菜单“圈一圈”标题 Logo 放入 `ui/main_menu/logo_main_menu.png`，经 `uiArtCatalog.ts` 接入并替换文字标题；已在 Windows 横屏及 Android 横、竖屏确认适当放大、等比缩放且无遮挡、裁切或溢出。
 - [ ] 替换品牌标志与临时 favicon。
 - [ ] 评估生命、净化等 HUD 图标是否继续使用 Lucide；只有确需定制时再按 `ui/icon_*.svg` 登记，避免装饰性膨胀。
 - [ ] 主循环完成并验证后，再决定是否制作第二条同调性 BGM。
