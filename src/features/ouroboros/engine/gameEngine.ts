@@ -1,11 +1,17 @@
 import {
+  BULLET_HIT_LENGTH_PENALTY,
+  BULLET_RADIUS,
+  BULLET_SPEED,
   GLOBAL_SPEED_INCREMENT,
+  HEAD_RADIUS,
   INITIAL_BODY_LENGTH,
   INITIAL_BODY_POINTS,
   INITIAL_GLOBAL_SPEED,
   INITIAL_LIVES,
   LEVEL_INTERVAL,
   MAX_ENEMIES,
+  SHOOTER_FIRE_INTERVAL_MAX,
+  SHOOTER_FIRE_INTERVAL_MIN,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./config";
@@ -34,6 +40,7 @@ import {
 import { nextPowerUpInterval } from "./powerups/powerUpSpawn";
 import { updatePowerUps } from "./powerups/powerUpSystem";
 import type {
+  Bullet,
   CardinalDirection,
   CollisionSystem,
   Enemy,
@@ -128,6 +135,7 @@ function appendEnemy(
       enemies: game.enemies,
       random,
       tutorial: !game.tutorialComplete,
+      level: game.level,
     });
   game.enemies.push(
     createEnemy(game.nextEnemyId, game.kills, random, spawn),
@@ -190,6 +198,10 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     level: 1,
     globalSpeed: INITIAL_GLOBAL_SPEED,
     levelClock: 0,
+    bullets: [],
+    nextBulletId: 0,
+    bulletHitFlash: 0,
+    tailShrinkFlash: 0,
   };
 
   appendEnemy(game, random, {
@@ -198,6 +210,136 @@ export function createGameState(random: RandomSource = Math.random): GameState {
   });
   game.powerUpSpawnClock = nextPowerUpInterval(random);
   return game;
+}
+
+/** 射手敌人发射子弹逻辑（预判蛇头前进方向） */
+function updateShooters(
+  game: GameState,
+  head: Point,
+  snakeAngle: number,
+  snakeSpeed: number,
+  delta: number,
+  random: RandomSource,
+): void {
+  const snakeVX = Math.cos(snakeAngle) * snakeSpeed;
+  const snakeVY = Math.sin(snakeAngle) * snakeSpeed;
+
+  for (const enemy of game.enemies) {
+    if (enemy.kind !== "shooter") continue;
+
+    enemy.behaviorClock -= delta;
+    if (enemy.behaviorClock <= 0) {
+      // 重置射击计时器
+      enemy.behaviorClock =
+        SHOOTER_FIRE_INTERVAL_MIN +
+        random() * (SHOOTER_FIRE_INTERVAL_MAX - SHOOTER_FIRE_INTERVAL_MIN);
+
+      // 预判射击：计算子弹与蛇头的交汇点
+      const aimPoint = predictIntercept(
+        enemy,
+        head,
+        snakeVX,
+        snakeVY,
+      );
+
+      const dirX = aimPoint.x - enemy.x;
+      const dirY = aimPoint.y - enemy.y;
+      const length = Math.hypot(dirX, dirY);
+      if (length < 1) continue;
+
+      const bullet: Bullet = {
+        id: game.nextBulletId,
+        x: enemy.x,
+        y: enemy.y,
+        velocityX: (dirX / length) * BULLET_SPEED,
+        velocityY: (dirY / length) * BULLET_SPEED,
+        radius: BULLET_RADIUS,
+        shooterId: enemy.id,
+      };
+      game.bullets.push(bullet);
+      game.nextBulletId += 1;
+    }
+  }
+}
+
+/** 预判射击交汇点：解二次方程求子弹与蛇头的相遇位置 */
+function predictIntercept(
+  shooter: Point,
+  head: Point,
+  svx: number,
+  svy: number,
+): Point {
+  const dx = head.x - shooter.x;
+  const dy = head.y - shooter.y;
+  const bs = BULLET_SPEED;
+  const snakeSpeedSquared = svx * svx + svy * svy;
+  const a = snakeSpeedSquared - bs * bs;
+  const b = 2 * (dx * svx + dy * svy);
+  const c = dx * dx + dy * dy;
+
+  // 蛇速约等于子弹速度时，用线性近似
+  if (Math.abs(a) < 0.01) {
+    if (b <= 0) return head; // 蛇在远离，直接瞄准当前位置
+    const t = -c / b;
+    return { x: head.x + svx * t, y: head.y + svy * t };
+  }
+
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return head; // 无实数解，瞄准当前位置
+
+  const sqrtDisc = Math.sqrt(discriminant);
+  let t = (-b - sqrtDisc) / (2 * a);
+  if (t <= 0) t = (-b + sqrtDisc) / (2 * a);
+  if (t <= 0) return head; // 无正数解，瞄准当前位置
+
+  return { x: head.x + svx * t, y: head.y + svy * t };
+}
+
+/** 更新子弹位置，移除越界的子弹 */
+function updateBullets(game: GameState, delta: number): void {
+  const margin = BULLET_RADIUS;
+  game.bullets = game.bullets.filter((bullet) => {
+    bullet.x += bullet.velocityX * delta;
+    bullet.y += bullet.velocityY * delta;
+    return (
+      bullet.x >= -margin &&
+      bullet.x <= WORLD_WIDTH + margin &&
+      bullet.y >= -margin &&
+      bullet.y <= WORLD_HEIGHT + margin
+    );
+  });
+}
+
+/** 检测子弹是否命中蛇头，命中则缩减蛇身长度 */
+function checkBulletHeadCollisions(
+  game: GameState,
+  head: Point,
+  events: GameEvent[],
+): void {
+  const hitRadius = HEAD_RADIUS + BULLET_RADIUS;
+  const hitIds = new Set<number>();
+
+  for (const bullet of game.bullets) {
+    const dx = bullet.x - head.x;
+    const dy = bullet.y - head.y;
+    if (dx * dx + dy * dy < hitRadius * hitRadius) {
+      hitIds.add(bullet.id);
+    }
+  }
+
+  if (hitIds.size === 0) return;
+
+  game.bullets = game.bullets.filter((b) => !hitIds.has(b.id));
+  game.bodyLength = Math.max(
+    INITIAL_BODY_LENGTH,
+    game.bodyLength - BULLET_HIT_LENGTH_PENALTY * hitIds.size,
+  );
+  game.bulletHitFlash = 0.35;
+  game.tailShrinkFlash = 0.5;
+  game.message = "蛇头被子弹击中，蛇身缩短了！";
+  for (let i = 0; i < hitIds.size; i++) {
+    events.push({ type: "bullet-hit" });
+  }
 }
 
 export function snapshotHud(game: GameState): HudSnapshot {
@@ -265,6 +407,8 @@ export function updateGame(
   game.closureCooldown = Math.max(0, game.closureCooldown - effectiveDelta);
   game.closureFlash = Math.max(0, game.closureFlash - effectiveDelta * 1.4);
   game.invulnerable = Math.max(0, game.invulnerable - effectiveDelta);
+  game.bulletHitFlash = Math.max(0, game.bulletHitFlash - effectiveDelta);
+  game.tailShrinkFlash = Math.max(0, game.tailShrinkFlash - effectiveDelta);
   tickPowerUpEffects(game, effectiveDelta);
 
   // 关卡推进
@@ -360,6 +504,15 @@ export function updateGame(
     random,
     activeModifiers.enemySpeed,
   );
+
+  // 射手射击逻辑（传入蛇的当前速度和方向用于预判）
+  updateShooters(game, liveHead, game.angle, speed, effectiveDelta, random);
+
+  // 更新子弹
+  updateBullets(game, effectiveDelta);
+
+  // 检测子弹与蛇头碰撞
+  checkBulletHeadCollisions(game, liveHead, events);
 
   const headHits = resolveEnemySnakeCollisions(
     game.enemies,
