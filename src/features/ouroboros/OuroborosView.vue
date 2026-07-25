@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import { Heart, Pause, Play, Sparkles } from "@lucide/vue";
+import { Heart, Layers, Pause, Play, Sparkles } from "@lucide/vue";
 import OuroborosStage from "./components/OuroborosStage.vue";
 import PowerUpBar from "./components/PowerUpBar.vue";
 import type { OuroborosStageExpose } from "./components/OuroborosStage.vue";
@@ -45,6 +45,12 @@ const game = useOuroborosGame(() => stage.value?.getContainer() ?? null);
       </button>
 
       <div class="game-stats">
+        <div class="stat-chip level-chip">
+          <Layers :size="15" aria-hidden="true" />
+          <span>关卡</span>
+          <strong>{{ game.hud.value.level.toString().padStart(2, "0") }}</strong>
+        </div>
+
         <div class="stat-chip score-chip">
           <Sparkles :size="15" aria-hidden="true" />
           <span>分数</span>
