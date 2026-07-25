@@ -48,7 +48,7 @@ import type {
 const TUTORIAL_MESSAGE = "首尾相接，圈住敌人";
 const FIRST_WAVE_MESSAGE = "正式开始，三角敌人会追踪蛇头！";
 const INITIAL_RING_RADIUS = 112 * (2 / 3);
-const INITIAL_RING_GAP_ANGLE = 0.48;
+const INITIAL_RING_GAP_ANGLE = 0.7;
 const TUTORIAL_AUTO_SPEED = 32;
 const MIN_CAPTURE_REGION_AREA = 600;
 const SUCCESSFUL_CLOSURE_COOLDOWN = 1.8;
@@ -402,7 +402,7 @@ export function updateGame(
     liveTail &&
     game.closureCooldown <= 0 &&
     game.trail.length > 34 &&
-    distance(liveHead, liveTail) < activeModifiers.closureDistance
+    distance(liveHead, liveTail) <= activeModifiers.closureDistance
   ) {
     const ring = game.trail.map((point) => ({ ...point }));
     const region = buildClosedStrokeRegion(ring, BODY_WIDTH / 2);

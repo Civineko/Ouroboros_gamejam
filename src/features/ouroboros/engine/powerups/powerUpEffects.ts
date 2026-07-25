@@ -5,10 +5,11 @@ import type {
   PowerUpKind,
   TimedPowerUpKind,
 } from "../types";
-import { MAX_LIVES } from "../config";
+import { HEAD_RADIUS, MAX_LIVES, TAIL_RADIUS } from "../config";
 import { POWER_UP_DEFINITIONS } from "./powerUpCatalog";
 
-export const BASE_CLOSURE_DISTANCE = 25;
+export const BASE_CLOSURE_DISTANCE = HEAD_RADIUS + TAIL_RADIUS + 4;
+export const RESONANCE_CLOSURE_DISTANCE = BASE_CLOSURE_DISTANCE + 14;
 
 export interface PowerUpModifiers {
   snakeSpeed: number;
@@ -72,7 +73,9 @@ export function powerUpModifiers(game: GameState): PowerUpModifiers {
     snakeSpeed: activeKinds.has("haste") ? 1.18 : 1,
     snakeTurn: activeKinds.has("haste") ? 1.12 : 1,
     enemySpeed: activeKinds.has("stasis") ? 0.55 : 1,
-    closureDistance: activeKinds.has("resonance") ? 40 : BASE_CLOSURE_DISTANCE,
+    closureDistance: activeKinds.has("resonance")
+      ? RESONANCE_CLOSURE_DISTANCE
+      : BASE_CLOSURE_DISTANCE,
   };
 }
 
