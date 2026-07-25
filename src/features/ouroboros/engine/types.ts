@@ -36,6 +36,7 @@ export interface GameState {
   invulnerable: number;
   nextEnemyId: number;
   message: string;
+  tutorialComplete: boolean;
 }
 
 export interface HudSnapshot {

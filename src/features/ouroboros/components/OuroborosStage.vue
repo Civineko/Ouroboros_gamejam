@@ -7,16 +7,12 @@ export interface OuroborosStageExpose {
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
   CircleDotDashed,
   Pause,
   Play,
   RotateCcw,
 } from "@lucide/vue";
-import type { CardinalDirection, HudSnapshot } from "../engine/types";
+import type { HudSnapshot } from "../engine/types";
 
 defineProps<{
   started: boolean;
@@ -29,7 +25,6 @@ const emit = defineEmits<{
   start: [];
   pause: [];
   restart: [];
-  direction: [direction: CardinalDirection];
 }>();
 
 const container = useTemplateRef<HTMLElement>("container");
@@ -73,51 +68,46 @@ defineExpose<OuroborosStageExpose>({
           重新开始
         </button>
       </div>
-    </div>
 
-    <div class="touch-controls" aria-label="方向控制">
-      <button type="button" title="向左" aria-label="向左" @click="emit('direction', 'left')">
-        <ArrowLeft :size="20" />
-      </button>
-      <button type="button" title="向上" aria-label="向上" @click="emit('direction', 'up')">
-        <ArrowUp :size="20" />
-      </button>
-      <button type="button" title="向下" aria-label="向下" @click="emit('direction', 'down')">
-        <ArrowDown :size="20" />
-      </button>
-      <button type="button" title="向右" aria-label="向右" @click="emit('direction', 'right')">
-        <ArrowRight :size="20" />
-      </button>
     </div>
   </div>
 </template>
 
 <style scoped>
 .stage-shell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   min-width: 0;
+  overflow: hidden;
 }
 
 .canvas-frame {
   position: relative;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: var(--stage);
-  border: 9px solid var(--paper-strong);
-  border-radius: 8px;
-  box-shadow: 10px 12px 0 var(--shadow);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .phaser-host {
   display: block;
   width: 100%;
-  aspect-ratio: 920 / 620;
-  cursor: crosshair;
+  height: 100%;
+  cursor: default;
   touch-action: none;
 }
 
 .phaser-host :deep(canvas) {
   display: block;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none;
+  max-height: none;
 }
 
 .stage-cover {
@@ -197,38 +187,7 @@ defineExpose<OuroborosStageExpose>({
   background: var(--amber);
 }
 
-.touch-controls {
-  display: none;
-  grid-template-columns: repeat(4, 42px);
-  gap: 7px;
-  justify-content: center;
-  margin-top: 12px;
-}
-
-.touch-controls button {
-  display: grid;
-  width: 42px;
-  height: 40px;
-  place-items: center;
-  padding: 0;
-  cursor: pointer;
-  background: rgba(255, 253, 247, 0.72);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-@media (max-width: 820px), (hover: none) {
-  .touch-controls {
-    display: grid;
-  }
-}
-
 @media (max-width: 560px) {
-  .canvas-frame {
-    border-width: 6px;
-    box-shadow: 6px 7px 0 var(--shadow);
-  }
-
   .stage-cover {
     padding: 14px;
   }

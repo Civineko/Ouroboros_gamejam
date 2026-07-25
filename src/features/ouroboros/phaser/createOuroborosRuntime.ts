@@ -26,7 +26,7 @@ export function createOuroborosRuntime(
     transparent: false,
     scene,
     scale: {
-      mode: Phaser.Scale.FIT,
+      mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
       width: VIEWPORT_WIDTH,
       height: VIEWPORT_HEIGHT,
