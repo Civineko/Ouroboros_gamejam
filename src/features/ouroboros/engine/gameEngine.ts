@@ -219,6 +219,10 @@ export function steerToward(game: GameState, target: Point): void {
   game.steering = true;
 }
 
+export function stopSteering(game: GameState): void {
+  game.steering = false;
+}
+
 export function setCardinalDirection(
   game: GameState,
   direction: CardinalDirection,
