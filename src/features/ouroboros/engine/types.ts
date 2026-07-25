@@ -16,6 +16,7 @@ export interface Enemy extends Point {
   velocityY: number;
   heading: number;
   behaviorClock: number;
+  collisionRecovery: number;
 }
 
 export interface GameState {
@@ -47,13 +48,26 @@ export interface HudSnapshot {
   message: string;
 }
 
+export interface CollisionContact {
+  normalX: number;
+  normalY: number;
+  penetration: number;
+}
+
 export interface CollisionSystem {
-  circlesOverlap: (
+  circleToCircle: (
     first: Point,
     firstRadius: number,
     second: Point,
     secondRadius: number,
-  ) => boolean;
+  ) => CollisionContact | null;
+  circleToSegment: (
+    circle: Point,
+    circleRadius: number,
+    segmentStart: Point,
+    segmentEnd: Point,
+    segmentRadius: number,
+  ) => CollisionContact | null;
   containsPoint: (polygon: readonly Point[], point: Point) => boolean;
 }
 

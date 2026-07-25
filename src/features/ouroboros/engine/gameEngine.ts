@@ -1,5 +1,4 @@
 import {
-  HEAD_RADIUS,
   INITIAL_BODY_LENGTH,
   INITIAL_BODY_POINTS,
   INITIAL_LIVES,
@@ -18,7 +17,12 @@ import {
   ENEMY_DEFINITIONS,
   enemyKindForId,
 } from "./enemies/enemyCatalog";
+import { resolveEnemySnakeCollisions } from "./enemies/enemyCollision";
 import { updateEnemyMotion } from "./enemies/enemyMotion";
+import {
+  planEnemySpawn,
+  type EnemySpawnPlan,
+} from "./enemies/enemySpawn";
 import type {
   CardinalDirection,
   CollisionSystem,
@@ -42,32 +46,11 @@ export function createEnemy(
   id: number,
   kills: number,
   random: RandomSource = Math.random,
+  spawn?: EnemySpawnPlan,
 ): Enemy {
-  const edge = Math.floor(random() * 4);
-  const padding = 28;
-  const kind = enemyKindForId(id);
+  const position = spawn?.position ?? createEdgeSpawnPosition(random);
+  const kind = spawn?.kind ?? enemyKindForId(id);
   const definition = ENEMY_DEFINITIONS[kind];
-
-  const position =
-    edge === 0
-      ? {
-          x: padding,
-          y: padding + random() * (WORLD_HEIGHT - padding * 2),
-        }
-      : edge === 1
-        ? {
-            x: WORLD_WIDTH - padding,
-            y: padding + random() * (WORLD_HEIGHT - padding * 2),
-          }
-        : edge === 2
-          ? {
-              x: padding + random() * (WORLD_WIDTH - padding * 2),
-              y: padding,
-            }
-          : {
-              x: padding + random() * (WORLD_WIDTH - padding * 2),
-              y: WORLD_HEIGHT - padding,
-            };
 
   const baseSpeed = 34 + random() * 14 + Math.min(38, kills * 1.6);
   const size = 12 + random() * 5;
@@ -86,7 +69,47 @@ export function createEnemy(
     velocityY: Math.sin(phase) * speed,
     heading: phase,
     behaviorClock: 0.4 + (phase / (Math.PI * 2)) * 0.8,
+    collisionRecovery: 0,
   };
+}
+
+function createEdgeSpawnPosition(random: RandomSource): Point {
+  const edge = Math.floor(random() * 4);
+  const padding = 28;
+
+  return edge === 0
+    ? {
+        x: padding,
+        y: padding + random() * (WORLD_HEIGHT - padding * 2),
+      }
+    : edge === 1
+      ? {
+          x: WORLD_WIDTH - padding,
+          y: padding + random() * (WORLD_HEIGHT - padding * 2),
+        }
+      : edge === 2
+        ? {
+            x: padding + random() * (WORLD_WIDTH - padding * 2),
+            y: padding,
+          }
+        : {
+            x: padding + random() * (WORLD_WIDTH - padding * 2),
+            y: WORLD_HEIGHT - padding,
+          };
+}
+
+function appendEnemy(game: GameState, random: RandomSource): void {
+  const spawn = planEnemySpawn({
+    id: game.nextEnemyId,
+    bodyLength: game.bodyLength,
+    trail: game.trail,
+    enemies: game.enemies,
+    random,
+  });
+  game.enemies.push(
+    createEnemy(game.nextEnemyId, game.kills, random, spawn),
+  );
+  game.nextEnemyId += 1;
 }
 
 export function createGameState(random: RandomSource = Math.random): GameState {
@@ -96,17 +119,13 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     y: WORLD_HEIGHT / 2,
   }));
 
-  return {
+  const game: GameState = {
     trail,
     angle: 0,
     target: { x: 760, y: WORLD_HEIGHT / 2 },
     steering: false,
     bodyLength: INITIAL_BODY_LENGTH,
-    enemies: [
-      createEnemy(0, 0, random),
-      createEnemy(1, 0, random),
-      createEnemy(2, 0, random),
-    ],
+    enemies: [],
     spawnClock: 0,
     kills: 0,
     lives: INITIAL_LIVES,
@@ -115,9 +134,12 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     closureFlash: 0,
     lastRing: null,
     invulnerable: 0,
-    nextEnemyId: 3,
+    nextEnemyId: 0,
     message: "引导蛇身围住敌人，让蛇头触碰蛇尾",
   };
+
+  for (let index = 0; index < 3; index += 1) appendEnemy(game, random);
+  return game;
 }
 
 export function snapshotHud(game: GameState): HudSnapshot {
@@ -220,8 +242,7 @@ export function updateGame(
     game.enemies.length < enemyLimitFor(game.kills)
   ) {
     game.spawnClock = 0;
-    game.enemies.push(createEnemy(game.nextEnemyId, game.kills, random));
-    game.nextEnemyId += 1;
+    appendEnemy(game, random);
   }
 
   const liveHead = game.trail.at(-1);
@@ -229,19 +250,22 @@ export function updateGame(
 
   updateEnemyMotion(game.enemies, liveHead, delta, random);
 
-  if (game.invulnerable <= 0) {
-    const collision = game.enemies.findIndex(
-      (enemy) =>
-        collisions.circlesOverlap(
-          enemy,
-          enemy.size,
-          liveHead,
-          HEAD_RADIUS - 3,
-        ),
-    );
+  const headHits = resolveEnemySnakeCollisions(
+    game.enemies,
+    game.trail,
+    collisions,
+  );
 
-    if (collision >= 0) {
-      game.enemies.splice(collision, 1);
+  if (headHits.length > 0) {
+    const hitEnemy = headHits[0];
+    if (hitEnemy) {
+      const hitIndex = game.enemies.findIndex(
+        (enemy) => enemy.id === hitEnemy.id,
+      );
+      if (hitIndex >= 0) game.enemies.splice(hitIndex, 1);
+    }
+
+    if (game.invulnerable <= 0) {
       game.lives -= 1;
       game.invulnerable = 1.4;
       game.message =

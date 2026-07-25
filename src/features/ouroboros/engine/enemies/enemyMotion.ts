@@ -192,6 +192,15 @@ export function updateEnemyMotion(
     if (!enemyMoves(enemy.kind)) {
       enemy.velocityX = 0;
       enemy.velocityY = 0;
+      enemy.collisionRecovery = 0;
+      continue;
+    }
+
+    enemy.collisionRecovery = Math.max(0, enemy.collisionRecovery - delta);
+    if (enemy.collisionRecovery > 0) {
+      enemy.x += enemy.velocityX * delta;
+      enemy.y += enemy.velocityY * delta;
+      keepInsideWorld(enemy);
       continue;
     }
 

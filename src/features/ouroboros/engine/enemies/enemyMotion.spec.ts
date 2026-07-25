@@ -37,6 +37,24 @@ describe("enemy motion", () => {
     expect(distance(tracker, initialTracker)).toBeGreaterThan(0);
   });
 
+  it("keeps a tracker moving away while collision recovery is active", () => {
+    const tracker = {
+      ...createEnemy(2, 0, fixedRandom),
+      x: 500,
+      y: 300,
+      velocityX: -40,
+      velocityY: 0,
+      heading: Math.PI,
+      collisionRecovery: 0.14,
+    };
+
+    updateEnemyMotion([tracker], { x: 700, y: 300 }, 0.1, fixedRandom);
+
+    expect(tracker.x).toBe(496);
+    expect(tracker.velocityX).toBe(-40);
+    expect(tracker.collisionRecovery).toBeCloseTo(0.04);
+  });
+
   it("separates moving enemies after a flock update", () => {
     const wanderer = { ...createEnemy(1, 0, fixedRandom), x: 400, y: 300 };
     const tracker = { ...createEnemy(2, 0, fixedRandom), x: 400, y: 300 };

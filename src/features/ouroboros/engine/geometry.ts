@@ -1,4 +1,8 @@
-import type { CollisionSystem, Point } from "./types";
+import type {
+  CollisionContact,
+  CollisionSystem,
+  Point,
+} from "./types";
 
 export function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -44,9 +48,66 @@ export function angleDifference(target: number, current: number): number {
   return Math.atan2(Math.sin(target - current), Math.cos(target - current));
 }
 
+export function contactFromNearestPoint(
+  circle: Point,
+  nearest: Point,
+  combinedRadius: number,
+  fallbackNormal: Point = { x: 1, y: 0 },
+): CollisionContact | null {
+  const offsetX = circle.x - nearest.x;
+  const offsetY = circle.y - nearest.y;
+  const contactDistance = Math.hypot(offsetX, offsetY);
+  const penetration = combinedRadius - contactDistance;
+  if (penetration <= 0) return null;
+
+  if (contactDistance > Number.EPSILON) {
+    return {
+      normalX: offsetX / contactDistance,
+      normalY: offsetY / contactDistance,
+      penetration,
+    };
+  }
+
+  const fallbackLength = Math.hypot(fallbackNormal.x, fallbackNormal.y);
+  return {
+    normalX: fallbackLength > Number.EPSILON ? fallbackNormal.x / fallbackLength : 1,
+    normalY: fallbackLength > Number.EPSILON ? fallbackNormal.y / fallbackLength : 0,
+    penetration,
+  };
+}
+
 export const nativeCollisionSystem: CollisionSystem = {
-  circlesOverlap(first, firstRadius, second, secondRadius) {
-    return distance(first, second) < firstRadius + secondRadius;
+  circleToCircle(first, firstRadius, second, secondRadius) {
+    return contactFromNearestPoint(first, second, firstRadius + secondRadius);
+  },
+  circleToSegment(
+    circle,
+    circleRadius,
+    segmentStart,
+    segmentEnd,
+    segmentRadius,
+  ) {
+    const segmentX = segmentEnd.x - segmentStart.x;
+    const segmentY = segmentEnd.y - segmentStart.y;
+    const lengthSquared = segmentX * segmentX + segmentY * segmentY;
+    const projection =
+      lengthSquared <= Number.EPSILON
+        ? 0
+        : ((circle.x - segmentStart.x) * segmentX +
+            (circle.y - segmentStart.y) * segmentY) /
+          lengthSquared;
+    const clampedProjection = Math.max(0, Math.min(1, projection));
+    const nearest = {
+      x: segmentStart.x + segmentX * clampedProjection,
+      y: segmentStart.y + segmentY * clampedProjection,
+    };
+
+    return contactFromNearestPoint(
+      circle,
+      nearest,
+      circleRadius + segmentRadius,
+      { x: -segmentY, y: segmentX },
+    );
   },
   containsPoint(polygon, point) {
     return pointInPolygon(point, polygon);

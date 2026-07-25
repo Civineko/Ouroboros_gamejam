@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   distance,
+  nativeCollisionSystem,
   pointInPolygon,
   polygonArea,
   trimTrailToLength,
@@ -37,5 +38,42 @@ describe("geometry", () => {
 
     expect(trail[0]).toEqual({ x: 5, y: 0 });
     expect(trail.at(-1)).toEqual({ x: 10, y: 0 });
+  });
+});
+
+describe("collision geometry", () => {
+  it("returns circle contact depth and outward normal", () => {
+    const contact = nativeCollisionSystem.circleToCircle(
+      { x: 8, y: 0 },
+      5,
+      { x: 0, y: 0 },
+      5,
+    );
+
+    expect(contact).toEqual({ normalX: 1, normalY: 0, penetration: 2 });
+  });
+
+  it("treats a thick segment as a capsule", () => {
+    const contact = nativeCollisionSystem.circleToSegment(
+      { x: 5, y: 7 },
+      4,
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      5,
+    );
+
+    expect(contact).toEqual({ normalX: 0, normalY: 1, penetration: 2 });
+  });
+
+  it("does not report a circle outside the segment end cap", () => {
+    const contact = nativeCollisionSystem.circleToSegment(
+      { x: 17, y: 0 },
+      3,
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      4,
+    );
+
+    expect(contact).toBeNull();
   });
 });
