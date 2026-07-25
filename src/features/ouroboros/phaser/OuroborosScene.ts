@@ -66,6 +66,10 @@ export class OuroborosScene extends Phaser.Scene {
   }
 
   create(): void {
+    if (this.sound instanceof Phaser.Sound.WebAudioSoundManager) {
+      this.audio.attachContext(this.sound.context, this.sound.destination);
+    }
+
     this.cameraController = new OuroborosCameraController(this.cameras.main);
     this.cameraController.snapTo({
       x: WORLD_WIDTH / 2,

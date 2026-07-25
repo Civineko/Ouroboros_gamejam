@@ -38,6 +38,8 @@ function createBrowserAudioContext(): AudioContext | null {
 
 export class OuroborosAudioController {
   private context: AudioContext | null = null;
+  private contextOwned = false;
+  private outputDestination: AudioNode | null = null;
   private musicOutput: GainNode | null = null;
   private effectsOutput: GainNode | null = null;
   private musicNodes: OscillatorNode[] = [];
@@ -57,6 +59,27 @@ export class OuroborosAudioController {
   setMusicVolume(volume: number): void {
     this.musicVolume = clampVolume(volume, this.musicVolume);
     this.applyMusicGain(0.04);
+  }
+
+  attachContext(context: AudioContext, destination: AudioNode): void {
+    if (this.context === context && this.outputDestination === destination) {
+      return;
+    }
+
+    this.musicOutput?.disconnect();
+    this.effectsOutput?.disconnect();
+    if (
+      this.contextOwned &&
+      this.context &&
+      this.context.state !== "closed"
+    ) {
+      void this.context.close().catch(() => undefined);
+    }
+
+    this.context = context;
+    this.contextOwned = false;
+    this.outputDestination = destination;
+    this.createOutputs(context, destination);
   }
 
   setEffectsVolume(volume: number): void {
@@ -223,10 +246,15 @@ export class OuroborosAudioController {
     this.pendingCues = [];
     this.resumePromise = null;
     const context = this.context;
+    const contextOwned = this.contextOwned;
+    this.musicOutput?.disconnect();
+    this.effectsOutput?.disconnect();
     this.context = null;
+    this.contextOwned = false;
+    this.outputDestination = null;
     this.musicOutput = null;
     this.effectsOutput = null;
-    if (context && context.state !== "closed") {
+    if (contextOwned && context && context.state !== "closed") {
       void context.close().catch(() => undefined);
     }
   }
@@ -237,19 +265,28 @@ export class OuroborosAudioController {
     try {
       const context = this.contextFactory();
       if (!context) return null;
-      const musicOutput = context.createGain();
-      const effectsOutput = context.createGain();
-      musicOutput.gain.value = MINIMUM_GAIN;
-      effectsOutput.gain.value = this.effectsVolume;
-      musicOutput.connect(context.destination);
-      effectsOutput.connect(context.destination);
       this.context = context;
-      this.musicOutput = musicOutput;
-      this.effectsOutput = effectsOutput;
+      this.contextOwned = true;
+      this.outputDestination = context.destination;
+      this.createOutputs(context, context.destination);
       return context;
     } catch {
       return null;
     }
+  }
+
+  private createOutputs(
+    context: AudioContext,
+    destination: AudioNode,
+  ): void {
+    const musicOutput = context.createGain();
+    const effectsOutput = context.createGain();
+    musicOutput.gain.value = MINIMUM_GAIN;
+    effectsOutput.gain.value = this.effectsVolume;
+    musicOutput.connect(destination);
+    effectsOutput.connect(destination);
+    this.musicOutput = musicOutput;
+    this.effectsOutput = effectsOutput;
   }
 
   private handleContextRunning(context: AudioContext): void {
