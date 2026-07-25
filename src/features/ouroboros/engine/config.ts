@@ -38,3 +38,18 @@ export const LEVEL_COLORS: readonly string[] = [
 export function levelColor(level: number): string {
   return LEVEL_COLORS[(level - 1) % LEVEL_COLORS.length]!;
 }
+
+/** 射手敌人射击间隔最小值（秒） */
+export const SHOOTER_FIRE_INTERVAL_MIN = 2.0;
+
+/** 射手敌人射击间隔最大值（秒） */
+export const SHOOTER_FIRE_INTERVAL_MAX = 3.5;
+
+/** 子弹速度（像素/秒） */
+export const BULLET_SPEED = 180;
+
+/** 子弹半径 */
+export const BULLET_RADIUS = 8;
+
+/** 被子弹命中减少的蛇身长度（圈住一个敌人收益的两倍） */
+export const BULLET_HIT_LENGTH_PENALTY = 62;

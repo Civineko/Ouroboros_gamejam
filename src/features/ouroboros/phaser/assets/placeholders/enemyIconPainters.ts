@@ -87,10 +87,35 @@ function paintTracker({ graphics, enemy, size }: EnemyIconContext): void {
   );
 }
 
+function paintShooter({ graphics, enemy, size }: EnemyIconContext): void {
+  const color = colorFromHex(enemy.color);
+  // 底座阴影
+  graphics.fillStyle(SHADOW, 0.24);
+  graphics.fillCircle(4, 5, size + 2);
+  // 底座
+  graphics.fillStyle(color, 1);
+  graphics.fillCircle(0, 0, size);
+  // 底座高光
+  graphics.lineStyle(2, LIGHT, 0.5);
+  graphics.strokeCircle(0, 0, size - 2);
+  // 炮管（指向右侧，通过 container 旋转朝向蛇头）
+  graphics.fillStyle(INK, 0.88);
+  graphics.fillRect(2, -3, size * 1.5, 6);
+  // 炮口
+  graphics.fillStyle(LIGHT, 0.9);
+  graphics.fillCircle(size * 1.5 + 2, 0, 3);
+  // 中心核心
+  graphics.fillStyle(LIGHT, 0.8);
+  graphics.fillCircle(0, 0, 4);
+  graphics.fillStyle(INK, 0.68);
+  graphics.fillCircle(0, 0, 2);
+}
+
 const ENEMY_ICON_PAINTERS: Readonly<Record<EnemyKind, EnemyIconPainter>> = {
   stationary: paintStationary,
   wanderer: paintWanderer,
   tracker: paintTracker,
+  shooter: paintShooter,
 };
 
 export function paintEnemyIcon(context: EnemyIconContext): void {
