@@ -8,11 +8,10 @@ export type PowerUpKind =
   | "shield"
   | "heal"
   | "stasis"
-  | "haste"
-  | "resonance";
+  | "haste";
 export type TimedPowerUpKind = Extract<
   PowerUpKind,
-  "stasis" | "haste" | "resonance"
+  "stasis" | "haste"
 >;
 
 export interface Enemy extends Point {

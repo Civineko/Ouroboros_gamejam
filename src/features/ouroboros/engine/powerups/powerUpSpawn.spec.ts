@@ -88,13 +88,12 @@ function distanceToSegment(point: Point, start: Point, end: Point): number {
 }
 
 describe("power-up catalog", () => {
-  it("defines all five weighted power-ups and their durations", () => {
+  it("defines all four weighted power-ups and their durations", () => {
     expect(POWER_UP_KINDS).toEqual([
       "shield",
       "heal",
       "stasis",
       "haste",
-      "resonance",
     ]);
 
     for (const kind of POWER_UP_KINDS) {
@@ -109,7 +108,6 @@ describe("power-up catalog", () => {
     expect(POWER_UP_DEFINITIONS.heal.duration).toBeNull();
     expect(POWER_UP_DEFINITIONS.stasis.duration).toBe(5);
     expect(POWER_UP_DEFINITIONS.haste.duration).toBe(5);
-    expect(POWER_UP_DEFINITIONS.resonance.duration).toBe(8);
   });
 });
 
@@ -135,7 +133,7 @@ describe("power-up spawn planning", () => {
       }),
     );
 
-    expect(nearEnd?.kind).toBe("resonance");
+    expect(nearEnd?.kind).toBe("haste");
   });
 
   it("stays near the head while respecting snake, enemy, and world clearance", () => {

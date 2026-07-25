@@ -12,7 +12,6 @@ export const OUROBOROS_ART_KEYS = {
   powerUpHeal: "ouroboros.power-up.heal",
   powerUpStasis: "ouroboros.power-up.stasis",
   powerUpHaste: "ouroboros.power-up.haste",
-  powerUpResonance: "ouroboros.power-up.resonance",
   captureParticle: "ouroboros.effect.capture-particle",
   hitBurst: "ouroboros.effect.hit-burst",
 } as const;
@@ -102,12 +101,6 @@ export const OUROBOROS_ART_ASSETS: readonly OuroborosArtAsset[] = [
     type: "image",
     key: OUROBOROS_ART_KEYS.powerUpHaste,
     path: `${ART_ROOT}/items/powerups/spr_powerup_haste.png`,
-    status: "todo",
-  },
-  {
-    type: "image",
-    key: OUROBOROS_ART_KEYS.powerUpResonance,
-    path: `${ART_ROOT}/items/powerups/spr_powerup_resonance.png`,
     status: "todo",
   },
   {
