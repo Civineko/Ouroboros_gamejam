@@ -35,6 +35,12 @@ Phaser 运行时边界。Scene 负责游戏循环与输入，View 负责 WebGL /
 
 程序绘制占位图集中在 `phaser/assets/placeholders/`。正式美术接入后逐项删除对应占位实现，不把临时绘图留在玩法引擎。文件规格、优先级和交付 TODO 见 [ART_ASSETS.md](ART_ASSETS.md)。
 
+### 世界与相机
+
+玩法世界尺寸由 `engine/config.ts` 定义为 `1440×900`，Phaser 视口由 `phaser/config.ts` 独立定义为 `920×620`。`phaser/camera/` 只读取蛇头坐标并平滑跟随，输入继续使用 `pointer.worldX / worldY`，因此玩法规则不依赖相机滚动。
+
+未来 Boss 状态与行为放在 `engine/bosses/`，表现放在 `phaser/bosses/`；Boss 不应直接控制 Vue 布局或修改视口尺寸。需要特殊镜头时扩展相机控制器的目标策略，不在 Boss 逻辑中直接操作 Phaser Camera。
+
 ### `input/`
 
 把原始按键映射为 `steer / toggle-pause` 等语义动作。未来加入手柄时，应新增适配器，不要把手柄按键写进引擎。

@@ -128,6 +128,25 @@ describe("enemy spawn planning", () => {
     }
   });
 
+  it("keeps tutorial enemies within the starting camera neighborhood", () => {
+    const head = openTrail.at(-1);
+    expect(head).toBeDefined();
+    if (!head) return;
+
+    for (const randomValue of [0, 0.25, 0.5, 0.75, 0.999]) {
+      const plan = planEnemySpawn({
+        id: 0,
+        bodyLength: INITIAL_BODY_LENGTH,
+        trail: openTrail,
+        enemies: [],
+        random: constantRandom(randomValue),
+      });
+
+      expect(Math.abs(plan.position.x - head.x)).toBeLessThanOrEqual(380);
+      expect(Math.abs(plan.position.y - head.y)).toBeLessThanOrEqual(240);
+    }
+  });
+
   it("unlocks wanderers in the middle stage but never plans trackers", () => {
     expect(TRACKER_UNLOCK_LENGTH).toBeGreaterThan(WANDERER_UNLOCK_LENGTH);
     const bodyLength =

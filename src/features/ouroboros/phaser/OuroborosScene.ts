@@ -16,6 +16,7 @@ import type {
 } from "../engine/types";
 import { actionForKey } from "../input/gameActions";
 import { preloadOuroborosArt } from "./assets/preloadOuroborosArt";
+import { OuroborosCameraController } from "./camera/OuroborosCameraController";
 import { OuroborosSceneView } from "./OuroborosSceneView";
 import { phaserCollisionSystem } from "./phaserCollisionSystem";
 
@@ -33,6 +34,7 @@ export interface OuroborosSceneCallbacks {
 export class OuroborosScene extends Phaser.Scene {
   private state: GameState;
   private sceneView: OuroborosSceneView | null = null;
+  private cameraController: OuroborosCameraController | null = null;
   private running = false;
   private started = false;
   private paused = false;
@@ -52,6 +54,8 @@ export class OuroborosScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.cameraController = new OuroborosCameraController(this.cameras.main);
+    this.snapCameraToHead();
     this.sceneView = new OuroborosSceneView(this);
     this.sceneView.render(this.state);
 
@@ -74,6 +78,7 @@ export class OuroborosScene extends Phaser.Scene {
     }
 
     this.sceneView?.render(this.state);
+    this.followHead(delta);
   }
 
   startRound(): void {
@@ -83,6 +88,7 @@ export class OuroborosScene extends Phaser.Scene {
     this.paused = false;
     this.gameOver = false;
     this.skipNextUpdate = true;
+    this.snapCameraToHead();
     this.publishStatus();
     this.publishHud();
     this.sceneView?.render(this.state);
@@ -145,11 +151,22 @@ export class OuroborosScene extends Phaser.Scene {
     });
   }
 
+  private snapCameraToHead(): void {
+    const head = this.state.trail.at(-1);
+    if (head) this.cameraController?.snapTo(head);
+  }
+
+  private followHead(delta: number): void {
+    const head = this.state.trail.at(-1);
+    if (head) this.cameraController?.follow(head, delta);
+  }
+
   private handleShutdown(): void {
     this.input.off("pointerdown", this.handlePointerDown, this);
     this.input.off("pointermove", this.handlePointerMove, this);
     this.input.keyboard?.off("keydown", this.handleKeyDown, this);
     this.sceneView?.destroy();
     this.sceneView = null;
+    this.cameraController = null;
   }
 }

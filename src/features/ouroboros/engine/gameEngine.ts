@@ -114,15 +114,20 @@ function appendEnemy(game: GameState, random: RandomSource): void {
 
 export function createGameState(random: RandomSource = Math.random): GameState {
   const initialSpacing = INITIAL_BODY_LENGTH / (INITIAL_BODY_POINTS - 1);
+  const initialX = (WORLD_WIDTH - INITIAL_BODY_LENGTH) / 2;
   const trail = Array.from({ length: INITIAL_BODY_POINTS }, (_, index) => ({
-    x: 190 + index * initialSpacing,
+    x: initialX + index * initialSpacing,
     y: WORLD_HEIGHT / 2,
   }));
+  const initialHead = trail.at(-1) ?? {
+    x: WORLD_WIDTH / 2,
+    y: WORLD_HEIGHT / 2,
+  };
 
   const game: GameState = {
     trail,
     angle: 0,
-    target: { x: 760, y: WORLD_HEIGHT / 2 },
+    target: { x: initialHead.x + 1000, y: initialHead.y },
     steering: false,
     bodyLength: INITIAL_BODY_LENGTH,
     enemies: [],

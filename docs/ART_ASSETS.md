@@ -27,7 +27,7 @@ src/features/ouroboros/phaser/assets/
 
 ## 统一规格
 
-- 游戏逻辑画布：`920 × 620`，坐标与碰撞按此尺寸计算。
+- 游戏世界：`1440 × 900`；玩家视口保持 `920 × 620`，由相机在世界边界内跟随蛇头。
 - 风格：扁平、清晰轮廓、轻复古纸张感；优先保证缩小后的剪影识别，不依赖颜色区分类型。
 - 色彩基线：场地蓝 `#48678f`、蛇身青绿 `#5c9e94`、珊瑚红 `#ef624f`、琥珀黄 `#f2ba49`、深墨色 `#263b42`。
 - 角色成品使用透明背景、sRGB；主体四周至少保留 `8px` 透明安全边距。
@@ -39,7 +39,7 @@ src/features/ouroboros/phaser/assets/
 
 | 优先级 | 资源 | 交付路径 | 建议规格 | 运行时要求 | 当前占位 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 场地背景 | `environment/stage/tex_stage_background.webp` | `1840×1240`，WebP ≤ 400KB | 缩放到 `920×620`，中心区域保持低细节 | `OuroborosSceneView.drawBackground` |
+| P0 | 场地地砖 | `environment/stage/tex_stage_tile.webp` | `256×256` 无缝 WebP，≤ 100KB | 平铺覆盖 `1440×900` 世界，保持低细节 | `OuroborosSceneView.drawBackground` |
 | P0 | 蛇头 | `characters/snake/spr_snake_head.png` | `64×64`，透明 PNG | 朝右、中心旋转，舌头不得超出画布 | `OuroborosSceneView.drawHead` |
 | P0 | 蛇身条带 | `characters/snake/tex_snake_body_strip.png` | `64×32`，左右无缝 | 主体视觉厚度对应 `22px` | `OuroborosSceneView.drawBody` |
 | P0 | 蛇尾 | `characters/snake/spr_snake_tail.png` | `48×48`，透明 PNG | 中心锚点，视觉半径约 `13px` | `OuroborosSceneView.drawBody` |
@@ -74,6 +74,12 @@ src/features/ouroboros/phaser/assets/
 - [ ] 替换品牌标志与临时 favicon。
 - [ ] 评估生命、净化、成长图标是否继续使用 Lucide；需要定制时按 `ui/icon_*.svg` 交付。
 - [ ] 整理暂停、开始、结束状态的插图需求；当前保持纯 UI，不阻塞 P0。
+
+### P3 Boss 预留
+
+- [ ] 玩法确定后补充 Boss 本体、攻击预警、受击与死亡动画规格。
+- [ ] Boss 与普通敌人共用朝右、中心锚点约定，但使用独立 atlas，不塞入普通敌人图片。
+- [ ] Boss 场地装饰不得伪装成地图碰撞边界。
 
 ## 验收清单
 

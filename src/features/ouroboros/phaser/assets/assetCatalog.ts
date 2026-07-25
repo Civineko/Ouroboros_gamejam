@@ -36,7 +36,7 @@ export const OUROBOROS_ART_ASSETS: readonly OuroborosArtAsset[] = [
   {
     type: "image",
     key: OUROBOROS_ART_KEYS.stageBackground,
-    path: `${ART_ROOT}/environment/stage/tex_stage_background.webp`,
+    path: `${ART_ROOT}/environment/stage/tex_stage_tile.webp`,
     status: "todo",
   },
   {

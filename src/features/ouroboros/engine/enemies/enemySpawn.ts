@@ -34,6 +34,15 @@ const MAX_SPAWN_ENEMY_RADIUS = 17;
 const ENEMY_EXTRA_CLEARANCE = 20;
 const RANDOM_ATTEMPTS = 24;
 const FALLBACK_GRID_SPACING = 48;
+const TUTORIAL_RADIUS_X = 380;
+const TUTORIAL_RADIUS_Y = 240;
+
+interface SpawnBounds {
+  minimumX: number;
+  maximumX: number;
+  minimumY: number;
+  maximumY: number;
+}
 
 function sampleUnit(random: RandomSource): number {
   const value = random();
@@ -142,10 +151,33 @@ function clearanceScore(
   );
 }
 
-function randomPosition(margin: number, random: RandomSource): Point {
+function worldBounds(margin: number): SpawnBounds {
   return {
-    x: margin + sampleUnit(random) * (WORLD_WIDTH - margin * 2),
-    y: margin + sampleUnit(random) * (WORLD_HEIGHT - margin * 2),
+    minimumX: margin,
+    maximumX: WORLD_WIDTH - margin,
+    minimumY: margin,
+    maximumY: WORLD_HEIGHT - margin,
+  };
+}
+
+function tutorialBounds(margin: number, head: Point): SpawnBounds {
+  const world = worldBounds(margin);
+  return {
+    minimumX: Math.max(world.minimumX, head.x - TUTORIAL_RADIUS_X),
+    maximumX: Math.min(world.maximumX, head.x + TUTORIAL_RADIUS_X),
+    minimumY: Math.max(world.minimumY, head.y - TUTORIAL_RADIUS_Y),
+    maximumY: Math.min(world.maximumY, head.y + TUTORIAL_RADIUS_Y),
+  };
+}
+
+function randomPosition(bounds: SpawnBounds, random: RandomSource): Point {
+  return {
+    x:
+      bounds.minimumX +
+      sampleUnit(random) * (bounds.maximumX - bounds.minimumX),
+    y:
+      bounds.minimumY +
+      sampleUnit(random) * (bounds.maximumY - bounds.minimumY),
   };
 }
 
@@ -161,11 +193,12 @@ function gridAxis(minimum: number, maximum: number): number[] {
 function fallbackPosition(
   id: number,
   margin: number,
+  bounds: SpawnBounds,
   trail: readonly Point[],
   enemies: readonly Enemy[],
 ): Point {
-  const xPositions = gridAxis(margin, WORLD_WIDTH - margin);
-  const yPositions = gridAxis(margin, WORLD_HEIGHT - margin);
+  const xPositions = gridAxis(bounds.minimumX, bounds.maximumX);
+  const yPositions = gridAxis(bounds.minimumY, bounds.maximumY);
   const candidates = yPositions.flatMap((y) =>
     xPositions.map((x) => ({ x, y })),
   );
@@ -192,9 +225,14 @@ export function planEnemySpawn(context: EnemySpawnContext): EnemySpawnPlan {
   const kind = chooseKind(context.bodyLength, context.random);
   const margin =
     kind === "stationary" ? STATIONARY_WORLD_MARGIN : MOVING_WORLD_MARGIN;
+  const head = context.trail.at(-1);
+  const bounds =
+    context.bodyLength < WANDERER_UNLOCK_LENGTH && head
+      ? tutorialBounds(margin, head)
+      : worldBounds(margin);
 
   for (let attempt = 0; attempt < RANDOM_ATTEMPTS; attempt += 1) {
-    const candidate = randomPosition(margin, context.random);
+    const candidate = randomPosition(bounds, context.random);
     if (
       clearanceScore(candidate, margin, context.trail, context.enemies) >= 0
     ) {
@@ -207,6 +245,7 @@ export function planEnemySpawn(context: EnemySpawnContext): EnemySpawnPlan {
     position: fallbackPosition(
       context.id,
       margin,
+      bounds,
       context.trail,
       context.enemies,
     ),

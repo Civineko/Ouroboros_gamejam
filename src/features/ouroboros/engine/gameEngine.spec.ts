@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BODY_WIDTH } from "./config";
+import { BODY_WIDTH, WORLD_HEIGHT } from "./config";
 import {
   createEnemy,
   createGameState,
@@ -43,7 +43,7 @@ describe("game engine", () => {
     expect(calls).toBe(5);
     expect(enemy).toMatchObject({
       x: 28,
-      y: 169,
+      y: 28 + 0.25 * (WORLD_HEIGHT - 56),
       kind: "stationary",
       speed: 0,
       size: 15.75,
