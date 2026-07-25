@@ -190,7 +190,6 @@ export class OuroborosSceneView {
     this.background.clear();
     this.drawBackground(this.bgColor);
   }
-  }
 
   destroy(): void {
     for (const view of this.enemies.values()) view.container.destroy(true);
