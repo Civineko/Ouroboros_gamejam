@@ -32,11 +32,14 @@ describe("game engine", () => {
     const game = createGameState(fixedRandom);
 
     game.spawnClock = 99;
+    game.powerUpSpawnClock = 0;
     updateGame(game, 0, fixedRandom);
 
     expect(game.enemies).toHaveLength(1);
     expect(game.enemies[0]?.kind).toBe("stationary");
     expect(game.spawnClock).toBe(0);
+    expect(game.powerUps).toEqual([]);
+    expect(game.powerUpSpawnClock).toBe(0);
   });
 
   it("rejects a direct reverse but accepts a perpendicular turn", () => {
@@ -108,6 +111,59 @@ describe("game engine", () => {
     expect(events).toEqual([]);
     expect(game.lives).toBe(3);
     expect(game.enemies).not.toContain(enemy);
+  });
+
+  it("consumes a shield before losing life on a head collision", () => {
+    const game = createGameState(fixedRandom);
+    const head = game.trail.at(-1);
+    expect(head).toBeDefined();
+    if (!head) return;
+
+    const enemy = {
+      ...createEnemy(10, 0, fixedRandom),
+      x: head.x,
+      y: head.y,
+    };
+    game.enemies = [enemy];
+    game.shieldCharges = 1;
+    game.invulnerable = 0;
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(events).toContainEqual({ type: "shield-blocked" });
+    expect(game.shieldCharges).toBe(0);
+    expect(game.lives).toBe(3);
+    expect(game.enemies).not.toContain(enemy);
+  });
+
+  it("collects a power-up before resolving enemy movement and collisions", () => {
+    const game = createGameState(fixedRandom);
+    const head = game.trail.at(-1);
+    expect(head).toBeDefined();
+    if (!head) return;
+
+    game.enemies = [];
+    game.tutorialComplete = true;
+    game.powerUps = [
+      {
+        id: 0,
+        kind: "stasis",
+        x: head.x,
+        y: head.y,
+        radius: 12,
+        ttl: 10,
+        phase: 0,
+      },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom);
+
+    expect(events).toContainEqual({
+      type: "power-up-collected",
+      kind: "stasis",
+    });
+    expect(game.powerUps).toEqual([]);
+    expect(game.activeEffects).toEqual([{ kind: "stasis", remaining: 5 }]);
   });
 
   it("reverses and separates an enemy that touches the snake body", () => {

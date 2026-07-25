@@ -184,6 +184,7 @@ export function updateEnemyMotion(
   target: Point,
   delta: number,
   random: RandomSource = Math.random,
+  speedMultiplier = 1,
 ): void {
   const flock = enemies.map((enemy) => ({ ...enemy }));
   const response = 1 - Math.exp(-VELOCITY_RESPONSE * delta);
@@ -198,8 +199,8 @@ export function updateEnemyMotion(
 
     enemy.collisionRecovery = Math.max(0, enemy.collisionRecovery - delta);
     if (enemy.collisionRecovery > 0) {
-      enemy.x += enemy.velocityX * delta;
-      enemy.y += enemy.velocityY * delta;
+      enemy.x += enemy.velocityX * delta * speedMultiplier;
+      enemy.y += enemy.velocityY * delta * speedMultiplier;
       keepInsideWorld(enemy);
       continue;
     }
@@ -207,8 +208,8 @@ export function updateEnemyMotion(
     const base = baseSteering(enemy, target, delta, random);
     const flocking = flockSteering(enemy, flock);
     const desired = normalize(base.x + flocking.x, base.y + flocking.y);
-    const desiredVelocityX = desired.x * enemy.speed;
-    const desiredVelocityY = desired.y * enemy.speed;
+    const desiredVelocityX = desired.x * enemy.speed * speedMultiplier;
+    const desiredVelocityY = desired.y * enemy.speed * speedMultiplier;
 
     enemy.velocityX += (desiredVelocityX - enemy.velocityX) * response;
     enemy.velocityY += (desiredVelocityY - enemy.velocityY) * response;

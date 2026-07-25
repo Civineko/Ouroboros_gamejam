@@ -8,6 +8,11 @@ export const OUROBOROS_ART_KEYS = {
   enemyStationary: "ouroboros.enemy.stationary",
   enemyWanderer: "ouroboros.enemy.wanderer",
   enemyTracker: "ouroboros.enemy.tracker",
+  powerUpShield: "ouroboros.power-up.shield",
+  powerUpHeal: "ouroboros.power-up.heal",
+  powerUpStasis: "ouroboros.power-up.stasis",
+  powerUpHaste: "ouroboros.power-up.haste",
+  powerUpResonance: "ouroboros.power-up.resonance",
   captureParticle: "ouroboros.effect.capture-particle",
   hitBurst: "ouroboros.effect.hit-burst",
 } as const;
@@ -73,6 +78,36 @@ export const OUROBOROS_ART_ASSETS: readonly OuroborosArtAsset[] = [
     type: "image",
     key: OUROBOROS_ART_KEYS.enemyTracker,
     path: `${ART_ROOT}/characters/enemies/spr_enemy_tracker.png`,
+    status: "todo",
+  },
+  {
+    type: "image",
+    key: OUROBOROS_ART_KEYS.powerUpShield,
+    path: `${ART_ROOT}/items/powerups/spr_powerup_shield.png`,
+    status: "todo",
+  },
+  {
+    type: "image",
+    key: OUROBOROS_ART_KEYS.powerUpHeal,
+    path: `${ART_ROOT}/items/powerups/spr_powerup_heal.png`,
+    status: "todo",
+  },
+  {
+    type: "image",
+    key: OUROBOROS_ART_KEYS.powerUpStasis,
+    path: `${ART_ROOT}/items/powerups/spr_powerup_stasis.png`,
+    status: "todo",
+  },
+  {
+    type: "image",
+    key: OUROBOROS_ART_KEYS.powerUpHaste,
+    path: `${ART_ROOT}/items/powerups/spr_powerup_haste.png`,
+    status: "todo",
+  },
+  {
+    type: "image",
+    key: OUROBOROS_ART_KEYS.powerUpResonance,
+    path: `${ART_ROOT}/items/powerups/spr_powerup_resonance.png`,
     status: "todo",
   },
   {

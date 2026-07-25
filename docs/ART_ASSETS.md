@@ -11,6 +11,7 @@ public/assets/ouroboros/                      浏览器运行时成品
 ├── characters/snake/                         蛇头、蛇身、蛇尾
 ├── characters/enemies/                       敌人
 ├── environment/stage/                        场地
+├── items/powerups/                            增益道具
 ├── effects/                                  游戏特效
 └── ui/                                       品牌与网页图标
 
@@ -46,6 +47,11 @@ src/features/ouroboros/phaser/assets/
 | P0 | 静态敌人 | `characters/enemies/spr_enemy_stationary.png` | `64×64`，透明 PNG | 方/盾类稳定剪影，不旋转 | `placeholders/enemyIconPainters.ts` |
 | P0 | 游荡敌人 | `characters/enemies/spr_enemy_wanderer.png` | `64×64`，透明 PNG | 朝右，风筝/漂移类剪影 | `placeholders/enemyIconPainters.ts` |
 | P0 | 追踪敌人 | `characters/enemies/spr_enemy_tracker.png` | `64×64`，透明 PNG | 朝右，箭头/眼类追踪剪影 | `placeholders/enemyIconPainters.ts` |
+| P1 | 护环道具 | `items/powerups/spr_powerup_shield.png` | `48×48`，透明 PNG | 盾形，青绿主色，中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | 回生道具 | `items/powerups/spr_powerup_heal.png` | `48×48`，透明 PNG | 十字形，珊瑚红主色，中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | 凝滞道具 | `items/powerups/spr_powerup_stasis.png` | `48×48`，透明 PNG | 雪花形，浅蓝主色，中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | 疾行道具 | `items/powerups/spr_powerup_haste.png` | `48×48`，透明 PNG | 闪电形，琥珀黄主色，中心锚点 | `placeholders/powerUpIconPainters.ts` |
+| P1 | 共鸣道具 | `items/powerups/spr_powerup_resonance.png` | `48×48`，透明 PNG | 同心环形，紫色主色，中心锚点 | `placeholders/powerUpIconPainters.ts` |
 | P1 | 闭环粒子 | `effects/fx_capture_particle.png` | `32×32`，透明 PNG | 可着色，中心锚点 | Phaser 多边形闪光 |
 | P1 | 命中特效 | `effects/sheet_hit_burst.png` | 单帧 `128×128`，6–8 帧横排 | 首尾帧透明，不改变命中时机 | 头部透明闪烁 |
 | P2 | 品牌标志 | `ui/brand_mark.svg` | 正方形 SVG | 适配浅色背景，轮廓清晰 | Lucide `CircleDotDashed` |
@@ -65,6 +71,8 @@ src/features/ouroboros/phaser/assets/
 
 ### P1 反馈效果
 
+- [ ] 输出护环、回生、凝滞、疾行、共鸣五种道具图标；在 `24px` 显示尺寸下仍能仅凭剪影区分。
+- [ ] 五种道具保持统一外轮廓安全区，底板、脉冲和到期闪烁继续由 Phaser 绘制。
 - [ ] 输出闭环净化粒子。
 - [ ] 输出蛇头受击 spritesheet，并给出帧率建议。
 - [ ] 在桌面和手机尺寸确认特效不遮挡蛇头、敌人或闭环边界。
@@ -87,6 +95,7 @@ src/features/ouroboros/phaser/assets/
 - [ ] PNG/WebP 无多余白边、黑底或错误预乘透明边。
 - [ ] 移动角色均朝右，旋转中心位于主体中心。
 - [ ] 三类敌人在 `24px` 显示尺寸与灰度模式下仍能区分。
+- [ ] 五种增益道具在 `24px` 显示尺寸与灰度模式下仍能区分，中心锚点无跳动。
 - [ ] 背景不在地图边缘伪造可碰撞墙体，也不在蛇头附近制造视觉障碍。
 - [ ] 开发完成资源状态切换、桌面/手机截图和生产构建检查。
 

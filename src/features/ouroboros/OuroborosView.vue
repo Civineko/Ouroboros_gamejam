@@ -2,6 +2,7 @@
 import { useTemplateRef } from "vue";
 import { Heart, Pause, Play, Sparkles } from "@lucide/vue";
 import OuroborosStage from "./components/OuroborosStage.vue";
+import PowerUpBar from "./components/PowerUpBar.vue";
 import type { OuroborosStageExpose } from "./components/OuroborosStage.vue";
 import { useOuroborosGame } from "./composables/useOuroborosGame";
 
@@ -60,6 +61,12 @@ const game = useOuroborosGame(() => stage.value?.getContainer() ?? null);
         </div>
       </div>
     </div>
+
+    <PowerUpBar
+      v-if="game.started.value && game.hud.value.buffs.length"
+      class="active-buffs"
+      :buffs="game.hud.value.buffs"
+    />
   </main>
 </template>
 
@@ -154,6 +161,15 @@ const game = useOuroborosGame(() => stage.value?.getContainer() ?? null);
   color: var(--coral);
 }
 
+.active-buffs {
+  position: absolute;
+  top: calc(max(14px, env(safe-area-inset-top)) + 58px);
+  right: max(14px, env(safe-area-inset-right));
+  left: max(14px, env(safe-area-inset-left));
+  z-index: 30;
+  pointer-events: none;
+}
+
 @media (max-width: 520px) {
   .game-topbar {
     gap: 8px;
@@ -176,6 +192,10 @@ const game = useOuroborosGame(() => stage.value?.getContainer() ?? null);
   .stat-chip strong {
     min-width: 24px;
     font-size: 19px;
+  }
+
+  .active-buffs {
+    top: calc(max(14px, env(safe-area-inset-top)) + 51px);
   }
 }
 </style>
