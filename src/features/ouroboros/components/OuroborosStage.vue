@@ -6,8 +6,9 @@ export interface OuroborosStageExpose {
 
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import { Play, RotateCcw } from "@lucide/vue";
+import { Play } from "@lucide/vue";
 import type { HudSnapshot } from "../engine/types";
+import GameOverScreen from "./GameOverScreen.vue";
 import PauseMenu from "./PauseMenu.vue";
 
 defineProps<{
@@ -70,16 +71,15 @@ defineExpose<OuroborosStageExpose>({
         />
       </div>
 
-      <div v-if="gameOver" class="stage-cover stage-cover-end">
-        <span class="final-score">
-          本局消灭 {{ hud.kills }} 个敌人，蛇身成长至 {{ hud.length }}
-        </span>
-        <button type="button" class="primary-command" @click="emit('restart')">
-          <RotateCcw :size="17" />
-          重新开始
-        </button>
-      </div>
-
+      <Transition name="game-over-cover">
+        <div v-if="gameOver" class="stage-cover stage-cover-game-over">
+          <GameOverScreen
+            :hud="hud"
+            @restart="emit('restart')"
+            @exit="emit('end')"
+          />
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -184,16 +184,6 @@ defineExpose<OuroborosStageExpose>({
   background: rgba(18, 36, 40, 0.84);
 }
 
-.stage-cover-end::after {
-  position: absolute;
-  inset: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
-    max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-  pointer-events: none;
-  content: "";
-  border: 2px solid rgba(107, 201, 169, 0.62);
-  box-shadow: inset 0 0 0 2px rgba(23, 44, 47, 0.72);
-}
-
 .stage-cover-dialog {
   padding:
     max(16px, env(safe-area-inset-top))
@@ -203,11 +193,29 @@ defineExpose<OuroborosStageExpose>({
   overflow-y: auto;
 }
 
-.final-score {
-  margin: 0 0 20px;
-  color: rgba(255, 250, 240, 0.72);
-  font-size: 11px;
-  font-weight: 700;
+.stage-cover-game-over {
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(239, 98, 79, 0.2), transparent 35%),
+    linear-gradient(165deg, rgba(36, 52, 61, 0.95), rgba(20, 27, 35, 0.98));
+  backdrop-filter: blur(8px) saturate(0.72);
+}
+
+.stage-cover-game-over::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background-image:
+    linear-gradient(rgba(255, 253, 247, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 253, 247, 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
 }
 
 .primary-command {
@@ -260,6 +268,18 @@ defineExpose<OuroborosStageExpose>({
   opacity: 0;
   -webkit-backdrop-filter: blur(0);
   backdrop-filter: blur(0);
+}
+
+.game-over-cover-enter-active {
+  transition:
+    opacity 420ms ease,
+    backdrop-filter 420ms ease;
+}
+
+.game-over-cover-enter-from {
+  opacity: 0;
+  -webkit-backdrop-filter: blur(0) saturate(1);
+  backdrop-filter: blur(0) saturate(1);
 }
 
 @keyframes brand-arrival {
