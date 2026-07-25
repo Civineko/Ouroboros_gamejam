@@ -8,6 +8,8 @@ export const OUROBOROS_ART_KEYS = {
   enemyStationary: "ouroboros.enemy.stationary",
   enemyWanderer: "ouroboros.enemy.wanderer",
   enemyTracker: "ouroboros.enemy.tracker",
+  bossDevourerCore: "ouroboros.boss.devourer-core",
+  bossDevourerActions: "ouroboros.boss.devourer-actions",
   powerUpShield: "ouroboros.power-up.shield",
   powerUpHeal: "ouroboros.power-up.heal",
   powerUpStasis: "ouroboros.power-up.stasis",
@@ -15,6 +17,8 @@ export const OUROBOROS_ART_KEYS = {
   powerUpResonance: "ouroboros.power-up.resonance",
   captureParticle: "ouroboros.effect.capture-particle",
   hitBurst: "ouroboros.effect.hit-burst",
+  bossChargeWarning: "ouroboros.effect.boss-charge-warning",
+  bossCorrosiveTrail: "ouroboros.effect.boss-corrosive-trail",
 } as const;
 
 export type ArtAssetStatus = "todo" | "ready";
@@ -82,6 +86,20 @@ export const OUROBOROS_ART_ASSETS: readonly OuroborosArtAsset[] = [
   },
   {
     type: "image",
+    key: OUROBOROS_ART_KEYS.bossDevourerCore,
+    path: `${ART_ROOT}/characters/bosses/spr_boss_devourer_core.png`,
+    status: "ready",
+  },
+  {
+    type: "spritesheet",
+    key: OUROBOROS_ART_KEYS.bossDevourerActions,
+    path: `${ART_ROOT}/characters/bosses/sheet_boss_devourer_actions.png`,
+    status: "ready",
+    frameWidth: 160,
+    frameHeight: 160,
+  },
+  {
+    type: "image",
     key: OUROBOROS_ART_KEYS.powerUpShield,
     path: `${ART_ROOT}/items/powerups/spr_powerup_shield.png`,
     status: "todo",
@@ -123,5 +141,17 @@ export const OUROBOROS_ART_ASSETS: readonly OuroborosArtAsset[] = [
     status: "todo",
     frameWidth: 128,
     frameHeight: 128,
+  },
+  {
+    type: "image",
+    key: OUROBOROS_ART_KEYS.bossChargeWarning,
+    path: `${ART_ROOT}/effects/fx_boss_charge_warning.png`,
+    status: "ready",
+  },
+  {
+    type: "image",
+    key: OUROBOROS_ART_KEYS.bossCorrosiveTrail,
+    path: `${ART_ROOT}/effects/fx_boss_corrosive_trail.png`,
+    status: "todo",
   },
 ];

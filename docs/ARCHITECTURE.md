@@ -41,7 +41,7 @@ Phaser 运行时边界。Scene 负责游戏循环与输入，View 负责 WebGL /
 
 玩法世界尺寸由 `engine/config.ts` 定义为 `1440×900`，Phaser 视口由 `phaser/config.ts` 独立定义为 `920×620`。`phaser/camera/` 只读取蛇头坐标并平滑跟随，输入继续使用 `pointer.worldX / worldY`，因此玩法规则不依赖相机滚动。
 
-未来 Boss 状态与行为放在 `engine/bosses/`，表现放在 `phaser/bosses/`；Boss 不应直接控制 Vue 布局或修改视口尺寸。需要特殊镜头时扩展相机控制器的目标策略，不在 Boss 逻辑中直接操作 Phaser Camera。
+Boss 状态与行为放在 `engine/bosses/`，由 `gameEngine.ts` 协调积分触发、闭环伤害和普通敌人生成；当前表现由 `OuroborosSceneView` 读取只读状态绘制。Boss 不应直接控制 Vue 布局或修改视口尺寸。需要特殊镜头时扩展相机控制器的目标策略，不在 Boss 逻辑中直接操作 Phaser Camera。具体规则见 [BOSSES.md](BOSSES.md)。
 
 ### `input/`
 
@@ -53,7 +53,7 @@ Vue 与 Phaser 的协调层。负责创建和销毁 Phaser.Game，并将 HUD、�
 
 ### `audio/`
 
-保存与运行平台无关的音频偏好，包括总音量归一化和安全持久化。Vue 协调层把偏好转换为 Phaser Sound Manager 的实际音量；未来加入背景音乐、音效分组或桌面/Android 原生音频适配时，应继续从这一入口扩展，不把音量状态散落到组件或玩法引擎。
+保存与运行平台无关的音频偏好，包括总音量归一化和安全持久化。Vue 协调层把偏好转换为 Phaser Sound Manager 的实际音量；`phaser/audio/` 集中登记运行时文件、混音配置和 Boss 领域事件到声音的映射。Scene 只转发事件与暂停/恢复生命周期，不写文件路径或逐项音量。当前使用 HTML5 Audio 流式播放三分钟 Boss BGM，避免 Android WebView 把整首音乐解码进内存。
 
 ### `components/`
 

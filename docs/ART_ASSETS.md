@@ -2,9 +2,9 @@
 
 ## 用途与范围
 
-本文档是美工、音频、Vue UI、Phaser 表现开发与集成人员之间的交付协议。审计范围以当前已实现的全屏 UI、新手引导、三类敌人、五种增益、碰撞、闭环、暂停和结束状态为准，不包含 Boss 或其他尚未实现的玩法。
+本文档是美工、音频、Vue UI、Phaser 表现开发与集成人员之间的交付协议。审计范围以当前已实现的全屏 UI、新手引导、三类敌人、五种增益、首个 Boss、碰撞、闭环、暂停和结束状态为准，不包含其他尚未实现的玩法。
 
-当前版本的美术大量使用 Phaser 程序绘制、Lucide 图标与 CSS 作为占位，音频系统尚未接入。所有成品必须随 Windows `.exe` 和 Android `.apk` 离线打包；浏览器预览不是最终交付物。
+当前版本的美术大量使用 Phaser 程序绘制、Lucide 图标与 CSS 作为占位；首个 Boss 的战斗音乐、冲刺、出场、核心命中和击败音频已经接入，其他音频仍待交付。审计范围包含首个 Boss“噬环者”及其外置核心、冲撞预警和危险尾迹。所有成品必须随 Windows `.exe` 和 Android `.apk` 离线打包；浏览器预览不是最终交付物。
 
 ### 优先级与状态
 
@@ -23,6 +23,7 @@
 public/assets/ouroboros/                       最终安装包内的运行时成品
 ├── characters/snake/                         蛇头、蛇身、蛇尾
 ├── characters/enemies/                       三类敌人
+├── characters/bosses/                        Boss 本体与核心
 ├── environment/stage/                        场地
 ├── items/powerups/                           五种增益道具
 ├── effects/                                  命中、闭环与增益状态反馈
@@ -38,8 +39,9 @@ src/features/ouroboros/phaser/assets/
 ├── preloadOuroborosArt.ts                    只预加载 READY 美术
 └── placeholders/                             尚未替换的程序绘制占位
 
-src/features/ouroboros/phaser/audio/           音频接入时新增，当前为 TODO
+src/features/ouroboros/phaser/audio/           集中式运行时音频接入
 ├── audioCatalog.ts                           key、路径、分类、音量与循环配置
+├── preloadOuroborosAudio.ts                  统一预加载已登记音频
 └── OuroborosAudioController.ts               解锁、播放、暂停与生命周期管理
 ```
 
@@ -49,7 +51,7 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 - 音频使用 `bgm_`、`stinger_`、`sfx_`、`ui_` 前缀；变体以 `_01`、`_02` 结尾。
 - Phaser 世界资源必须先登记到 `assetCatalog.ts`，不允许在 Scene 中写裸路径。
 - Vue 覆盖层资源路径必须集中在单一常量模块后再接入，不要在多个组件模板中重复硬编码。
-- 音频接入时先建立 `audioCatalog.ts`；Scene 只发送现有状态或 `GameEvent`，不直接散写文件路径和混音参数。
+- 音频统一登记到 `audioCatalog.ts`；Scene 只发送现有状态或 `GameEvent`，不直接散写文件路径和混音参数。
 
 ## 美术统一规格
 
@@ -75,6 +77,9 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 | P0 | TODO | 静态敌人 | `characters/enemies/spr_enemy_stationary.png` | `64x64` 透明 PNG | 方/盾类稳定剪影，不旋转 | `placeholders/enemyIconPainters.ts` |
 | P0 | TODO | 游荡敌人 | `characters/enemies/spr_enemy_wanderer.png` | `64x64` 透明 PNG | 朝右，风筝/漂移类剪影 | `placeholders/enemyIconPainters.ts` |
 | P0 | TODO | 追踪敌人 | `characters/enemies/spr_enemy_tracker.png` | `64x64` 透明 PNG | 朝右，箭头/眼类追踪剪影 | `placeholders/enemyIconPainters.ts` |
+| P0 | READY | 噬环者本体（动作表第 0 帧） | `characters/bosses/sheet_boss_devourer_actions.png` | 第 0 帧 `160x160` 透明 PNG | 朝右、中心旋转；阶段色由护甲环表达，冲撞预警时程序染红 | 已并入正式动作表，不再单独打包静态本体 |
+| P0 | READY | 噬环者外置核心 | `characters/bosses/spr_boss_devourer_core.png` | `64x64` 透明 PNG | 中心锚点；运行时距本体中心约 `155px`；缩小后仍明显可圈取 | 正式贴图已接入，重组时变暗加叉，暴露时显示捕获环 |
+| P0 | READY | 噬环者动作差分 | `characters/bosses/sheet_boss_devourer_actions.png` | `1120x160` 透明 PNG，横排 7 帧，每帧 `160x160` | 全部朝右、中心锚点和脚底基线固定；见下方帧位定义 | 正式 spritesheet 已接入，状态映射位于 `bossArtFrames.ts` |
 | P1 | TODO | 护环道具 | `items/powerups/spr_powerup_shield.png` | `48x48` 透明 PNG | 盾形、浅蓝主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
 | P1 | TODO | 回生道具 | `items/powerups/spr_powerup_heal.png` | `48x48` 透明 PNG | 十字形、珊瑚红主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
 | P1 | TODO | 凝滞道具 | `items/powerups/spr_powerup_stasis.png` | `48x48` 透明 PNG | 雪花形、紫蓝主色、中心锚点 | `placeholders/powerUpIconPainters.ts` |
@@ -84,6 +89,8 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 | P1 | TODO | 命中特效 | `effects/sheet_hit_burst.png` | 单帧 `128x128`，6-8 帧横排 | `10-14fps`，首尾帧透明；敌人消失与蛇头受击共用，不改变命中时机 | 蛇头透明闪烁 |
 | P1 | TODO | 通用增益拾取特效 | `effects/sheet_powerup_collect.png` | 单帧 `64x64`，6 帧横排 | `12-16fps`，单色可着色，五种道具按定义颜色复用 | 当前仅让场上道具直接消失 |
 | P1 | TODO | 增益激活光环 | `effects/fx_buff_aura.png` | `96x96` 透明 PNG | 单色可着色；护环常驻，疾行/共鸣短暂强调；凝滞仍以敌人色调反馈 | HUD 有倒计时，场内缺少持续状态反馈 |
+| P1 | READY | Boss 冲撞蓄力 | `effects/fx_boss_charge_warning.png` | `64x64` 透明 PNG | 中心锚点、可染色；预警阶段在 Boss 身后旋转放大 | 正式贴图已接入，并叠加全屏红闪、路线走廊和警报文案 |
+| P1 | TODO | Boss 腐蚀尾迹 | `effects/fx_boss_corrosive_trail.png` | `64x64` 透明 PNG | 可平铺叠加、边缘柔和；不得遮住蛇头和闭环边界 | Phaser 半透明圆形占位 |
 | P2 | TODO | 品牌标志 | `ui/brand_mark.svg` | 正方形 SVG | 适配浅色背景和高 DPI，轮廓清晰 | Lucide `CircleDotDashed` |
 | P2 | TODO | favicon | `ui/favicon.svg` | `64x64` SVG | Windows 窗口和浏览器 `16px` 下可辨识 | 当前临时衔尾蛇图标 |
 
@@ -97,10 +104,27 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 - 护环抵消伤害时复用 `fx_buff_aura.png` 的破裂缩放与 `sheet_hit_burst.png` 的着色版本，不增加单独贴图。
 - 增益到期闪烁、场上道具脉冲、闭环范围和受击无敌闪烁继续由程序控制，不烘焙成多份图片。
 
+### Boss 动作差分帧位
+
+`sheet_boss_devourer_actions.png` 横向排列，不留帧间空隙；从左到右：
+
+1. `0 待机`：当前站姿，用作动作回落与加载失败基准。
+2. `1 追猎 A`：前腿迈出、身体轻微前倾。
+3. `2 追猎 B`：后腿迈出、身体轻微压低，与 A 交替形成移动感。
+4. `3 蓄力`：重心后移、四肢抓地、头朝目标，不烘焙红光。
+5. `4 冲刺`：身体向前拉伸、四肢收拢，右侧轮廓明确尖锐。
+6. `5 硬直`：刹停或踉跄、头部下压，用于冲刺后的安全窗口。
+7. `6 受击`：身体后仰、表情收紧，不烘焙白闪或伤痕。
+
+每帧保持原本 `160x160` 透明画布、主体中心和脚底高度一致，四周至少 `8px` 透明安全边距。颜色、投影、红色蓄力、受击闪白、阶段色和粒子都由程序处理；不需要为三个阶段重复绘制整套差分。可选的“击败/瓦解”帧暂不需要，现有程序爆炸会完全覆盖本体。
+
+项目方交付的原图为 `3360x590` RGB PNG，棋盘格和底部动作标签已烘焙。运行时版本已确定性裁切、去除背景与标签，并规范为上述 `1120x160` RGBA spritesheet；不把交付原图或重复静态本体打进安装包。
+
 ### 不需要单独制作的美术
 
 - 开始、暂停、继续、重开和结束状态继续使用现有 Lucide 图标与 CSS 覆盖层；除非整体 UI 重新定稿，否则不制作重复 SVG。
 - 点击/拖动转向反馈使用 Phaser 圆环、缩放和淡出绘制，不新增透明 PNG。
+- Boss 吸收敌人连线、冲撞路线、召唤波纹、阶段扩散波、屏外方向箭头、核心捕获指引环、全屏红闪和击败方法 HUD，以及击败时的核心内爆、三重冲击波、放射光束和战果 HUD 由程序绘制，不制作固定方向贴图；冲撞蓄力复用已交付的 `fx_boss_charge_warning.png`，击败粒子后续复用通用 `fx_capture_particle.png`，爆心可复用 `sheet_hit_burst.png`。
 - 教学完成复用闭环净化反馈，空环复用程序绘制的闭环闪光，不为同一动作制作第二套图片。
 - 场上道具脉冲、到期闪烁、蛇头无敌闪烁和敌人碰撞分离均由程序控制。
 
@@ -109,9 +133,9 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 ### 格式与母带
 
 - 音频母带：`48kHz / 24-bit WAV`，保存在团队设计盘或 Git LFS，不进入 `public/`。
-- 运行时 BGM：`48kHz` 立体声 OGG Vorbis，建议 `96-128kbps`，循环点必须无爆音。
-- 运行时 SFX/UI：`48kHz` 单声道 OGG Vorbis，建议 `64-96kbps`；只有经 Android 实机确认存在解码延迟的 `<= 0.25s` 关键短音，才改用 `16-bit WAV`。
-- Windows 与 Android 当前统一以 `.ogg` 为正式交付格式，不同时打包内容相同的 MP3/AAC 副本；若未来目标壳层不支持 OGG，再由 `audioCatalog.ts` 增加回退格式。
+- 新制作的正式 BGM 默认使用 `48kHz` 立体声 OGG Vorbis，建议 `96-128kbps`，循环点必须无爆音；项目方直接提供的 MP3 可以原格式接入，但只能保留一份运行时编码。
+- 新制作的 SFX/UI 默认使用 `48kHz` 单声道 OGG Vorbis，建议 `64-96kbps`。当前三个程序生成的 Boss 短音为 `22.05kHz / 16-bit` 单声道 WAV，总计约 `163KB`，用于避免引入额外转码依赖。
+- 当前 Boss BGM 使用 HTML5 Audio 流式播放，避免 Android WebView 将 `180.61s` 立体声音乐整体解码进内存；最终 `.exe`/`.apk` 打包链固定后仍需验证 MP3/WAV 解码，再决定是否统一转为 OGG。
 - 所有文件首尾去除无意义静音，非循环短音尾部保留自然衰减，禁止归一化到 `0dBFS`。
 
 ### 响度与混音基线
@@ -124,7 +148,7 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 
 ## 音频资源清单
 
-表中路径均相对于 `public/assets/ouroboros/`；当前所有音频均为 `TODO`，运行时表现是无声。
+表中路径均相对于 `public/assets/ouroboros/`；Boss 音频已经接入，其余条目仍为 `TODO`。
 
 | 优先级 | 状态 | 资源 | 交付路径 | 时长 / 循环 | 事件触发点 | 建议响度 | 当前占位 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -137,6 +161,11 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 | P1 | TODO | 空环反馈 | `audio/sfx/gameplay/sfx_loop_empty.ogg` | `0.20-0.50s`，不循环 | `GameEvent: empty-loop` | `-20` 至 `-18 LUFS` | 无声 |
 | P1 | TODO | 护环抵消 | `audio/sfx/gameplay/sfx_shield_block.ogg` | `0.25-0.60s`，不循环 | `GameEvent: shield-blocked` | `-16` 至 `-14 LUFS` | 无声 |
 | P1 | TODO | 五种增益拾取音 | `audio/sfx/powerups/sfx_powerup_{shield,heal,stasis,haste,resonance}.ogg` | 各 `0.25-0.65s`，不循环 | `GameEvent: power-up-collected`，按 `kind` 选择 | `-18` 至 `-16 LUFS` | 无声 |
+| P1 | READY | Boss 战斗 BGM | `audio/music/bgm_boss_devourer.mp3` | `180.61s`，循环 | `GameEvent: boss-spawned` 后开始；预览已有 Boss 时在开始按钮手势内同步启动；击败、失败或重开时停止 | 运行时音量 `0.56`，最终母带响度待复核 | 项目方提供的 `The_Hunter_s_Last_March.mp3` 已接入 |
+| P1 | READY | Boss 冲刺 | `audio/sfx/gameplay/sfx_boss_charge.mp3` | `1.67s`，不循环 | `GameEvent: boss-charge`，每次进入冲刺只播放一次 | 运行时音量 `0.30`，最终母带响度待复核 | 项目方提供的 `大狗大狗叫叫叫-单句.mp3` 已接入并降低混音音量 |
+| P1 | READY | Boss 出场 | `audio/sfx/gameplay/sfx_boss_spawn.wav` | `1.10s`，不循环 | `GameEvent: boss-spawned` | 运行时音量 `0.68` | `scripts/generate_boss_sfx.py` 程序生成并接入 |
+| P1 | READY | Boss 核心命中 | `audio/sfx/gameplay/sfx_boss_core_hit.wav` | `0.48s`，不循环 | `GameEvent: boss-hit` | 运行时音量 `0.76` | `scripts/generate_boss_sfx.py` 程序生成并接入 |
+| P1 | READY | Boss 击败 | `audio/sfx/gameplay/stinger_boss_defeated.wav` | `2.20s`，不循环 | `GameEvent: boss-defeated`，先停止 Boss BGM | 运行时音量 `0.72` | `scripts/generate_boss_sfx.py` 程序生成并接入 |
 | P2 | TODO | BGM 备用循环 | `audio/music/bgm_gameplay_loop_02.ogg` | `45-75s`，无缝循环 | 仅用于降低长局重复感；与主循环同响度、同调性 | `-18 LUFS-I` | 无 |
 
 五种增益拾取音的完整文件名为：
@@ -150,7 +179,7 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 ### 不需要制作的音频
 
 - 不为蛇的持续移动、相机跟随或每帧转向制作循环声，避免疲劳和移动端声道占用。
-- 当前没有敌人攻击、Boss、对白和环境交互，不制作对应音频。
+- 当前没有普通敌人攻击、对白和环境交互，不制作对应音频；Boss 只使用清单中已有明确事件的五类声音。
 - 触控拖动只需要视觉反馈，不在连续 `pointermove` 上播放声音。
 - 敌人刷新没有公开 `GameEvent`，本轮不制作刷新音；后续只有在事件接口明确后再登记。
 
@@ -169,6 +198,10 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 | `GameEvent: power-up-collected` | 按 `kind` 播放对应拾取音。 |
 | `GameEvent: shield-blocked` | 播放护环抵消音，优先级高于普通增益拾取音。 |
 | `GameEvent: game-over` | 淡出并停止 BGM，播放结束短曲；重新开始时停止旧短曲。 |
+| `GameEvent: boss-spawned` | 播放出场音并启动唯一一条 Boss BGM 实例。 |
+| `GameEvent: boss-charge` | 停止尚未结束的同类冲刺音，再播放一次项目方提供的冲刺语音。 |
+| `GameEvent: boss-hit` | 播放短促核心破甲音，不中断 Boss BGM。 |
+| `GameEvent: boss-defeated` | 停止 Boss BGM，播放击败短曲；重开时清理残留声音。 |
 
 ## Windows 与 Android 约束
 
@@ -208,16 +241,21 @@ src/features/ouroboros/phaser/audio/           音频接入时新增，当前为
 - [ ] 评估生命、净化等 HUD 图标是否继续使用 Lucide；只有确需定制时再按 `ui/icon_*.svg` 登记，避免装饰性膨胀。
 - [ ] 主循环完成并验证后，再决定是否制作第二条同调性 BGM。
 
-### P3 Boss 预留
+### P1 Boss 战
 
-- [ ] Boss 玩法确定后再补充本体、攻击预警、受击和死亡动画规格；当前不提前制作素材。
-- [ ] Boss 与普通敌人共用朝右、中心锚点约定，但使用独立 atlas，不塞入普通敌人图片。
-- [ ] Boss 场地装饰不得伪装成地图碰撞边界；Boss 音频只在事件接口确定后登记。
+- [x] 接入噬环者本体与外置核心，核心在 Android 小屏下仍能清楚识别。
+- [x] 交付并接入 7 帧噬环者动作差分 spritesheet，替换旧静态本体；移动双帧按游戏时间切换，暂停时同步冻结。
+- [x] 接入 Boss 冲撞蓄力贴图，并与路线走廊、全屏红闪和警报文案组合。
+- [ ] 输出可复用腐蚀尾迹；冲撞路线继续由 Phaser 绘制，不额外制作固定方向贴图。
+- [x] 接入 Boss 战斗 BGM、冲刺、出场、核心命中和击败音频，并集中登记到 `audioCatalog.ts`。
+- [ ] 在 Windows `.exe` 与 Android `.apk` 中复核两段项目方音频的授权、响度、循环边界和解码兼容性。
+- [ ] 验证三阶段护甲、凝滞减速、共鸣双倍破甲和护环抵挡行为。
+- [ ] 在 Windows 窗口和 Android 触屏下完成积分触发、预警躲避、闭环破甲和击败流程。
 
 ## 接入与清理流程
 
 1. 制作人员按本文档路径交付运行时成品；母版留在设计盘或 Git LFS。
-2. 开发检查尺寸、透明、锚点、响度、循环点和文件大小。美术登记到 `assetCatalog.ts`；音频登记到待新增的 `audioCatalog.ts`。
+2. 开发检查尺寸、透明、锚点、响度、循环点和文件大小。美术登记到 `assetCatalog.ts`；音频登记到 `audioCatalog.ts`。
 3. 只有文件存在且目标平台加载成功后，才能把本表状态从 `TODO` 改成 `READY`、把 `assetCatalog.ts` 的对应值改成 `"ready"`，并勾选对应 TODO。
 4. 表现层使用正式 texture/audio key 替换占位；图片、特效和声音不得改变碰撞、增益时长、敌人移动或事件顺序。
 5. 单项替换时只删除对应 painter 分支。三类敌人全部接入后再删除 `enemyIconPainters.ts`；五种增益全部接入后再删除 `powerUpIconPainters.ts`。

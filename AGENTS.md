@@ -57,6 +57,7 @@ src/features/ouroboros/
 ├── composables/                              Vue 与 Phaser 生命周期协调
 ├── engine/                                   纯 TypeScript 玩法规则
 │   ├── enemies/                              敌人定义、生成、运动、碰撞
+│   ├── bosses/                               Boss 定义、阶段、能力与状态推进
 │   └── powerups/                             增益定义、生成、效果、调度
 ├── input/                                    原始输入到语义动作的映射
 └── phaser/                                   Scene、渲染、碰撞、相机和资源
@@ -81,7 +82,7 @@ Phaser 可以读取 GameState，但不拥有玩法数值
 Vue 只接收只读快照，不直接修改 GameState
 ```
 
-更完整说明见 `docs/ARCHITECTURE.md`。敌人和增益分别遵守 `docs/ENEMIES.md`、`docs/POWER_UPS.md`。
+更完整说明见 `docs/ARCHITECTURE.md`。敌人、Boss 和增益分别遵守 `docs/ENEMIES.md`、`docs/BOSSES.md`、`docs/POWER_UPS.md`。
 
 ## 新功能怎么放
 

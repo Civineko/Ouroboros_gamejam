@@ -7,6 +7,9 @@ export const MAX_LIVES = 3;
 export const INITIAL_LIVES = MAX_LIVES;
 export const MAX_ENEMIES = 14;
 
+/** 首次 Boss 战的净化积分门槛。 */
+export const BOSS_SCORE_THRESHOLD = 15;
+
 export const BODY_WIDTH = 22;
 export const HEAD_RADIUS = 17;
 export const TAIL_RADIUS = 13;

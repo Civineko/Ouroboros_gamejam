@@ -1,4 +1,5 @@
 import {
+  BOSS_SCORE_THRESHOLD,
   GLOBAL_SPEED_INCREMENT,
   INITIAL_BODY_LENGTH,
   INITIAL_BODY_POINTS,
@@ -9,6 +10,18 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./config";
+import {
+  DEVOURER_BODY_REWARD,
+  DEVOURER_DEFEAT_EFFECT_SECONDS,
+  DEVOURER_MAX_MINIONS,
+  DEVOURER_SCORE_REWARD,
+} from "./bosses/bossCatalog";
+import {
+  createDevourerBoss,
+  damageDevourerBoss,
+  isDevourerCoreCaptured,
+  updateDevourerBoss,
+} from "./bosses/bossSystem";
 import {
   angleDifference,
   distance,
@@ -180,6 +193,9 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     shieldCharges: 0,
     powerUpSpawnClock: 0,
     nextPowerUpId: 0,
+    boss: null,
+    bossDefeated: false,
+    bossDefeatEffect: null,
     level: 1,
     globalSpeed: INITIAL_GLOBAL_SPEED,
     levelClock: 0,
@@ -203,7 +219,70 @@ export function snapshotHud(game: GameState): HudSnapshot {
     nextGrowth: Math.max(1, 5 - (game.kills % 5)),
     message: game.message,
     buffs: snapshotBuffs(game),
+    boss: game.boss
+      ? {
+          name: game.boss.name,
+          armor: game.boss.armor,
+          maxArmor: game.boss.maxArmor,
+          phase: game.boss.phase,
+          coreExposed: game.boss.core.exposed,
+          action: game.boss.action,
+        }
+      : null,
+    bossDefeat: game.bossDefeatEffect
+      ? {
+          name: game.bossDefeatEffect.name,
+          reward: game.bossDefeatEffect.reward,
+          remaining: game.bossDefeatEffect.remaining,
+        }
+      : null,
   };
+}
+
+function applyPlayerDamage(
+  game: GameState,
+  events: GameEvent[],
+  hitMessage: string,
+): void {
+  if (game.invulnerable > 0) return;
+
+  if (game.shieldCharges > 0) {
+    game.shieldCharges -= 1;
+    game.invulnerable = 0.45;
+    game.message = "护环抵消了这次伤害";
+    events.push({ type: "shield-blocked" });
+    return;
+  }
+
+  game.lives -= 1;
+  game.invulnerable = 1.4;
+  game.message = game.lives > 0 ? hitMessage : "衔尾之环断开了";
+  events.push({ type: "hit", lives: game.lives });
+
+  if (game.lives <= 0) events.push({ type: "game-over" });
+}
+
+function spawnBossIfReady(game: GameState, events: GameEvent[]): void {
+  const head = game.trail.at(-1);
+  if (
+    !head ||
+    !game.tutorialComplete ||
+    game.boss ||
+    game.bossDefeated ||
+    game.kills < BOSS_SCORE_THRESHOLD
+  ) {
+    return;
+  }
+
+  game.boss = createDevourerBoss(head, game.enemies, game.angle);
+  game.enemies = [];
+  game.spawnClock = 0;
+  game.message = `${game.boss.name}现身！闭环捕获外置核心以破坏护甲`;
+  events.push({
+    type: "boss-spawned",
+    name: game.boss.name,
+    armor: game.boss.armor,
+  });
 }
 
 export function steerToward(game: GameState, target: Point): void {
@@ -245,6 +324,16 @@ export function updateGame(
   collisions: CollisionSystem = nativeCollisionSystem,
 ): GameEvent[] {
   const events: GameEvent[] = [];
+
+  if (game.bossDefeatEffect) {
+    game.bossDefeatEffect.remaining = Math.max(
+      0,
+      game.bossDefeatEffect.remaining - delta,
+    );
+    if (game.bossDefeatEffect.remaining === 0) {
+      game.bossDefeatEffect = null;
+    }
+  }
 
   // 全局速度倍率影响一切时间推进
   const effectiveDelta = delta * game.globalSpeed;
@@ -307,10 +396,14 @@ export function updateGame(
   game.trail.push(nextHead);
   trimTrailToLength(game.trail, game.bodyLength);
 
-  game.spawnClock = game.tutorialComplete ? game.spawnClock + effectiveDelta : 0;
+  game.spawnClock =
+    game.tutorialComplete && !game.boss
+      ? game.spawnClock + effectiveDelta
+      : 0;
   const spawnInterval = Math.max(0.48, 1.35 - game.kills * 0.025);
   if (
     game.tutorialComplete &&
+    !game.boss &&
     game.spawnClock >= spawnInterval &&
     game.enemies.length < enemyLimitFor(game.kills)
   ) {
@@ -350,23 +443,35 @@ export function updateGame(
       if (hitIndex >= 0) game.enemies.splice(hitIndex, 1);
     }
 
-    if (game.invulnerable <= 0) {
-      if (game.shieldCharges > 0) {
-        game.shieldCharges -= 1;
-        game.invulnerable = 0.45;
-        game.message = "护环抵消了这次伤害";
-        events.push({ type: "shield-blocked" });
-      } else {
-        game.lives -= 1;
-        game.invulnerable = 1.4;
-        game.message =
-          game.lives > 0 ? "敌人撞到了蛇头，保持移动！" : "衔尾之环断开了";
-        events.push({ type: "hit", lives: game.lives });
+    applyPlayerDamage(game, events, "敌人撞到了蛇头，保持移动！");
+  }
 
-        if (game.lives <= 0) {
-          events.push({ type: "game-over" });
-        }
-      }
+  if (game.boss) {
+    const bossUpdate = updateDevourerBoss(
+      game.boss,
+      liveHead,
+      delta,
+      collisions,
+      activeModifiers.enemySpeed,
+    );
+    const availableMinionSlots = Math.max(
+      0,
+      DEVOURER_MAX_MINIONS - game.enemies.length,
+    );
+    const minionsToSummon = Math.min(
+      availableMinionSlots,
+      bossUpdate.summonCount,
+    );
+    for (let index = 0; index < minionsToSummon; index += 1) {
+      appendEnemy(game, random);
+    }
+
+    if (bossUpdate.chargeStarted) {
+      events.push({ type: "boss-charge" });
+    }
+
+    if (bossUpdate.playerHit) {
+      applyPlayerDamage(game, events, "噬环者的冲撞撕裂了蛇环！");
     }
   }
 
@@ -385,6 +490,9 @@ export function updateGame(
         .map((enemy) => enemy.id),
     );
     const captured = trappedIds.size;
+    const bossCoreCaptured = game.boss
+      ? isDevourerCoreCaptured(game.boss, ring, collisions)
+      : false;
 
     game.enemies = game.enemies.filter((enemy) => !trappedIds.has(enemy.id));
     game.lastRing = ring;
@@ -402,7 +510,47 @@ export function updateGame(
         game.message = FIRST_WAVE_MESSAGE;
       }
       events.push({ type: "capture", count: captured, totalKills: game.kills });
-    } else {
+    }
+
+    if (bossCoreCaptured && game.boss) {
+      const resonanceActive = game.activeEffects.some(
+        (effect) => effect.kind === "resonance",
+      );
+      const damage = damageDevourerBoss(
+        game.boss,
+        resonanceActive ? 2 : 1,
+      );
+
+      if (game.boss.armor <= 0) {
+        const defeatedBoss = game.boss;
+        const defeatedName = defeatedBoss.name;
+        game.bossDefeatEffect = {
+          x: defeatedBoss.x,
+          y: defeatedBoss.y,
+          name: defeatedName,
+          reward: DEVOURER_SCORE_REWARD,
+          remaining: DEVOURER_DEFEAT_EFFECT_SECONDS,
+          duration: DEVOURER_DEFEAT_EFFECT_SECONDS,
+        };
+        game.boss = null;
+        game.bossDefeated = true;
+        game.kills += DEVOURER_SCORE_REWARD;
+        game.bodyLength += DEVOURER_BODY_REWARD;
+        game.message = `${defeatedName}被彻底净化，奖励 ${DEVOURER_SCORE_REWARD} 分！`;
+        events.push({
+          type: "boss-defeated",
+          name: defeatedName,
+          reward: DEVOURER_SCORE_REWARD,
+        });
+      } else {
+        game.message = `核心命中，破坏 ${damage} 层护甲！`;
+        events.push({
+          type: "boss-hit",
+          damage,
+          armor: game.boss.armor,
+        });
+      }
+    } else if (captured === 0) {
       game.message = "形成了空环，没有敌人被圈住";
       events.push({ type: "empty-loop" });
     }
@@ -415,6 +563,8 @@ export function updateGame(
     appendEnemy(game, random);
     game.message = TUTORIAL_MESSAGE;
   }
+
+  spawnBossIfReady(game, events);
 
   return events;
 }
