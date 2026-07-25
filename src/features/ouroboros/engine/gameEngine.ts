@@ -1,12 +1,19 @@
 import {
   BOSS_SCORE_THRESHOLD,
+  BODY_WIDTH,
+  BULLET_HIT_LENGTH_PENALTY,
+  BULLET_RADIUS,
+  BULLET_SPEED,
   GLOBAL_SPEED_INCREMENT,
+  HEAD_RADIUS,
   INITIAL_BODY_LENGTH,
   INITIAL_BODY_POINTS,
   INITIAL_GLOBAL_SPEED,
   INITIAL_LIVES,
   LEVEL_INTERVAL,
   MAX_ENEMIES,
+  SHOOTER_FIRE_INTERVAL_MAX,
+  SHOOTER_FIRE_INTERVAL_MIN,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./config";
@@ -24,9 +31,9 @@ import {
 } from "./bosses/bossSystem";
 import {
   angleDifference,
+  buildClosedStrokeRegion,
   distance,
   nativeCollisionSystem,
-  polygonArea,
   trimTrailToLength,
 } from "./geometry";
 import {
@@ -47,6 +54,7 @@ import {
 import { nextPowerUpInterval } from "./powerups/powerUpSpawn";
 import { updatePowerUps } from "./powerups/powerUpSystem";
 import type {
+  Bullet,
   CardinalDirection,
   CollisionSystem,
   Enemy,
@@ -59,9 +67,12 @@ import type {
 
 const TUTORIAL_MESSAGE = "首尾相接，圈住敌人";
 const FIRST_WAVE_MESSAGE = "正式开始，三角敌人会追踪蛇头！";
-const INITIAL_INFINITY_RADIUS_X = 125;
-const INITIAL_INFINITY_RADIUS_Y = 62.5;
-const INITIAL_INFINITY_GAP_ANGLE = 0.24;
+const INITIAL_RING_RADIUS = 112 * (2 / 3);
+const INITIAL_RING_GAP_ANGLE = 0.7;
+const TUTORIAL_AUTO_SPEED = 32;
+const MIN_CAPTURE_REGION_AREA = 600;
+const SUCCESSFUL_CLOSURE_COOLDOWN = 1.8;
+const INVALID_CLOSURE_COOLDOWN = 0.45;
 
 export function enemyLimitFor(kills: number): number {
   return Math.min(MAX_ENEMIES, 4 + Math.floor(kills / 3));
@@ -141,6 +152,7 @@ function appendEnemy(
       enemies: game.enemies,
       random,
       tutorial: !game.tutorialComplete,
+      level: game.level,
     });
   game.enemies.push(
     createEnemy(game.nextEnemyId, game.kills, random, spawn),
@@ -150,15 +162,15 @@ function appendEnemy(
 
 function createInitialTrail(): Point[] {
   const center = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
-  const sweep = Math.PI * 2 - INITIAL_INFINITY_GAP_ANGLE;
-  const startAngle = Math.PI / 2 + INITIAL_INFINITY_GAP_ANGLE / 2;
+  const sweep = Math.PI * 2 - INITIAL_RING_GAP_ANGLE;
+  const startAngle = INITIAL_RING_GAP_ANGLE / 2;
 
   return Array.from({ length: INITIAL_BODY_POINTS }, (_, index) => {
     const progress = index / (INITIAL_BODY_POINTS - 1);
     const angle = startAngle + sweep * progress;
     return {
-      x: center.x + Math.sin(angle) * INITIAL_INFINITY_RADIUS_X,
-      y: center.y + Math.sin(angle * 2) * INITIAL_INFINITY_RADIUS_Y,
+      x: center.x + Math.cos(angle) * INITIAL_RING_RADIUS,
+      y: center.y + Math.sin(angle) * INITIAL_RING_RADIUS,
     };
   });
 }
@@ -169,19 +181,26 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     x: WORLD_WIDTH / 2,
     y: WORLD_HEIGHT / 2,
   };
+  const initialTail = trail[0] ?? initialHead;
+  const previousHead = trail.at(-2) ?? initialHead;
+  const initialAngle = Math.atan2(
+    initialHead.y - previousHead.y,
+    initialHead.x - previousHead.x,
+  );
 
   const game: GameState = {
     trail,
-    angle: 0,
-    target: { x: initialHead.x + 1000, y: initialHead.y },
-    steering: false,
+    angle: initialAngle,
+    target: { ...initialTail },
+    steering: true,
+    tutorialAutoSteer: true,
     bodyLength: INITIAL_BODY_LENGTH,
     enemies: [],
     spawnClock: 0,
     kills: 0,
     lives: INITIAL_LIVES,
     elapsed: 0,
-    closureCooldown: 1.2,
+    closureCooldown: 0.6,
     closureFlash: 0,
     lastRing: null,
     invulnerable: 0,
@@ -199,14 +218,148 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     level: 1,
     globalSpeed: INITIAL_GLOBAL_SPEED,
     levelClock: 0,
+    bullets: [],
+    nextBulletId: 0,
+    bulletHitFlash: 0,
+    tailShrinkFlash: 0,
   };
 
   appendEnemy(game, random, {
     kind: "stationary",
-    position: { x: WORLD_WIDTH / 2 - 75, y: WORLD_HEIGHT / 2 },
+    position: { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 },
   });
   game.powerUpSpawnClock = nextPowerUpInterval(random);
   return game;
+}
+
+/** 射手敌人发射子弹逻辑（预判蛇头前进方向） */
+function updateShooters(
+  game: GameState,
+  head: Point,
+  snakeAngle: number,
+  snakeSpeed: number,
+  delta: number,
+  random: RandomSource,
+): void {
+  const snakeVX = Math.cos(snakeAngle) * snakeSpeed;
+  const snakeVY = Math.sin(snakeAngle) * snakeSpeed;
+
+  for (const enemy of game.enemies) {
+    if (enemy.kind !== "shooter") continue;
+
+    enemy.behaviorClock -= delta;
+    if (enemy.behaviorClock <= 0) {
+      // 重置射击计时器
+      enemy.behaviorClock =
+        SHOOTER_FIRE_INTERVAL_MIN +
+        random() * (SHOOTER_FIRE_INTERVAL_MAX - SHOOTER_FIRE_INTERVAL_MIN);
+
+      // 预判射击：计算子弹与蛇头的交汇点
+      const aimPoint = predictIntercept(
+        enemy,
+        head,
+        snakeVX,
+        snakeVY,
+      );
+
+      const dirX = aimPoint.x - enemy.x;
+      const dirY = aimPoint.y - enemy.y;
+      const length = Math.hypot(dirX, dirY);
+      if (length < 1) continue;
+
+      const bullet: Bullet = {
+        id: game.nextBulletId,
+        x: enemy.x,
+        y: enemy.y,
+        velocityX: (dirX / length) * BULLET_SPEED,
+        velocityY: (dirY / length) * BULLET_SPEED,
+        radius: BULLET_RADIUS,
+        shooterId: enemy.id,
+      };
+      game.bullets.push(bullet);
+      game.nextBulletId += 1;
+    }
+  }
+}
+
+/** 预判射击交汇点：解二次方程求子弹与蛇头的相遇位置 */
+function predictIntercept(
+  shooter: Point,
+  head: Point,
+  svx: number,
+  svy: number,
+): Point {
+  const dx = head.x - shooter.x;
+  const dy = head.y - shooter.y;
+  const bs = BULLET_SPEED;
+  const snakeSpeedSquared = svx * svx + svy * svy;
+  const a = snakeSpeedSquared - bs * bs;
+  const b = 2 * (dx * svx + dy * svy);
+  const c = dx * dx + dy * dy;
+
+  // 蛇速约等于子弹速度时，用线性近似
+  if (Math.abs(a) < 0.01) {
+    if (b <= 0) return head; // 蛇在远离，直接瞄准当前位置
+    const t = -c / b;
+    return { x: head.x + svx * t, y: head.y + svy * t };
+  }
+
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return head; // 无实数解，瞄准当前位置
+
+  const sqrtDisc = Math.sqrt(discriminant);
+  let t = (-b - sqrtDisc) / (2 * a);
+  if (t <= 0) t = (-b + sqrtDisc) / (2 * a);
+  if (t <= 0) return head; // 无正数解，瞄准当前位置
+
+  return { x: head.x + svx * t, y: head.y + svy * t };
+}
+
+/** 更新子弹位置，移除越界的子弹 */
+function updateBullets(game: GameState, delta: number): void {
+  const margin = BULLET_RADIUS;
+  game.bullets = game.bullets.filter((bullet) => {
+    bullet.x += bullet.velocityX * delta;
+    bullet.y += bullet.velocityY * delta;
+    return (
+      bullet.x >= -margin &&
+      bullet.x <= WORLD_WIDTH + margin &&
+      bullet.y >= -margin &&
+      bullet.y <= WORLD_HEIGHT + margin
+    );
+  });
+}
+
+/** 检测子弹是否命中蛇头，命中则缩减蛇身长度 */
+function checkBulletHeadCollisions(
+  game: GameState,
+  head: Point,
+  events: GameEvent[],
+): void {
+  const hitRadius = HEAD_RADIUS + BULLET_RADIUS;
+  const hitIds = new Set<number>();
+
+  for (const bullet of game.bullets) {
+    const dx = bullet.x - head.x;
+    const dy = bullet.y - head.y;
+    if (dx * dx + dy * dy < hitRadius * hitRadius) {
+      hitIds.add(bullet.id);
+    }
+  }
+
+  if (hitIds.size === 0) return;
+
+  game.bullets = game.bullets.filter((b) => !hitIds.has(b.id));
+  game.bodyLength = Math.max(
+    INITIAL_BODY_LENGTH,
+    game.bodyLength - BULLET_HIT_LENGTH_PENALTY * hitIds.size,
+  );
+  game.bulletHitFlash = 0.35;
+  game.tailShrinkFlash = 0.5;
+  game.message = "蛇头被子弹击中，蛇身缩短了！";
+  for (let i = 0; i < hitIds.size; i++) {
+    events.push({ type: "bullet-hit" });
+  }
 }
 
 export function snapshotHud(game: GameState): HudSnapshot {
@@ -286,8 +439,13 @@ function spawnBossIfReady(game: GameState, events: GameEvent[]): void {
 }
 
 export function steerToward(game: GameState, target: Point): void {
+  game.tutorialAutoSteer = false;
   game.target = target;
   game.steering = true;
+}
+
+export function stopSteering(game: GameState): void {
+  game.steering = false;
 }
 
 export function setCardinalDirection(
@@ -309,6 +467,7 @@ export function setCardinalDirection(
   const head = game.trail.at(-1);
   if (!head) return;
 
+  game.tutorialAutoSteer = false;
   game.angle = nextAngle;
   game.steering = false;
   game.target = {
@@ -341,6 +500,8 @@ export function updateGame(
   game.closureCooldown = Math.max(0, game.closureCooldown - effectiveDelta);
   game.closureFlash = Math.max(0, game.closureFlash - effectiveDelta * 1.4);
   game.invulnerable = Math.max(0, game.invulnerable - effectiveDelta);
+  game.bulletHitFlash = Math.max(0, game.bulletHitFlash - effectiveDelta);
+  game.tailShrinkFlash = Math.max(0, game.tailShrinkFlash - effectiveDelta);
   tickPowerUpEffects(game, effectiveDelta);
 
   // 关卡推进
@@ -358,6 +519,16 @@ export function updateGame(
   const head = game.trail.at(-1);
   if (!head) return events;
 
+  const tutorialTail = game.trail[0];
+  if (
+    game.tutorialAutoSteer &&
+    !game.tutorialComplete &&
+    tutorialTail
+  ) {
+    game.target = { ...tutorialTail };
+    game.steering = true;
+  }
+
   if (game.steering) {
     const targetAngle = Math.atan2(
       game.target.y - head.y,
@@ -374,8 +545,11 @@ export function updateGame(
     game.angle += turn;
   }
 
-  const speed =
-    (150 + Math.min(42, game.kills * 1.25)) * frameModifiers.snakeSpeed;
+  const baseSpeed =
+    game.tutorialAutoSteer && !game.tutorialComplete
+      ? TUTORIAL_AUTO_SPEED
+      : 150 + Math.min(42, game.kills * 1.25);
+  const speed = baseSpeed * frameModifiers.snakeSpeed;
   const nextHead = {
     x: head.x + Math.cos(game.angle) * speed * effectiveDelta,
     y: head.y + Math.sin(game.angle) * speed * effectiveDelta,
@@ -428,6 +602,15 @@ export function updateGame(
     activeModifiers.enemySpeed,
   );
 
+  // 射手射击逻辑（传入蛇的当前速度和方向用于预判）
+  updateShooters(game, liveHead, game.angle, speed, effectiveDelta, random);
+
+  // 更新子弹
+  updateBullets(game, effectiveDelta);
+
+  // 检测子弹与蛇头碰撞
+  checkBulletHeadCollisions(game, liveHead, events);
+
   const headHits = resolveEnemySnakeCollisions(
     game.enemies,
     game.trail,
@@ -450,7 +633,7 @@ export function updateGame(
     const bossUpdate = updateDevourerBoss(
       game.boss,
       liveHead,
-      delta,
+      effectiveDelta,
       collisions,
       activeModifiers.enemySpeed,
     );
@@ -480,83 +663,82 @@ export function updateGame(
     liveTail &&
     game.closureCooldown <= 0 &&
     game.trail.length > 34 &&
-    distance(liveHead, liveTail) < activeModifiers.closureDistance &&
-    polygonArea(game.trail) > 2200
+    distance(liveHead, liveTail) <= activeModifiers.closureDistance
   ) {
     const ring = game.trail.map((point) => ({ ...point }));
-    const trappedIds = new Set(
-      game.enemies
-        .filter((enemy) => collisions.containsPoint(ring, enemy))
-        .map((enemy) => enemy.id),
-    );
-    const captured = trappedIds.size;
-    const bossCoreCaptured = game.boss
-      ? isDevourerCoreCaptured(game.boss, ring, collisions)
-      : false;
-
-    game.enemies = game.enemies.filter((enemy) => !trappedIds.has(enemy.id));
-    game.lastRing = ring;
-    game.closureFlash = 1;
-    game.closureCooldown = 1.8;
-
-    if (captured > 0) {
-      game.kills += captured;
-      game.bodyLength += captured * 31;
-      if (game.tutorialComplete) {
-        game.message = `闭环成功，净化了 ${captured} 个敌人！`;
-      } else {
-        game.tutorialComplete = true;
-        game.spawnClock = 0;
-        game.message = FIRST_WAVE_MESSAGE;
-      }
-      events.push({ type: "capture", count: captured, totalKills: game.kills });
-    }
-
-    if (bossCoreCaptured && game.boss) {
-      const resonanceActive = game.activeEffects.some(
-        (effect) => effect.kind === "resonance",
+    const region = buildClosedStrokeRegion(ring, BODY_WIDTH / 2);
+    if (region.enclosedArea > MIN_CAPTURE_REGION_AREA) {
+      const trappedIds = new Set(
+        game.enemies
+          .filter((enemy) => region.containsCircle(enemy, enemy.size))
+          .map((enemy) => enemy.id),
       );
-      const damage = damageDevourerBoss(
-        game.boss,
-        resonanceActive ? 2 : 1,
-      );
+      const captured = trappedIds.size;
+      const bossCoreCaptured = game.boss
+        ? isDevourerCoreCaptured(game.boss, ring, collisions)
+        : false;
 
-      if (game.boss.armor <= 0) {
-        const defeatedBoss = game.boss;
-        const defeatedName = defeatedBoss.name;
-        game.bossDefeatEffect = {
-          x: defeatedBoss.x,
-          y: defeatedBoss.y,
-          name: defeatedName,
-          reward: DEVOURER_SCORE_REWARD,
-          remaining: DEVOURER_DEFEAT_EFFECT_SECONDS,
-          duration: DEVOURER_DEFEAT_EFFECT_SECONDS,
-        };
-        game.boss = null;
-        game.bossDefeated = true;
-        game.kills += DEVOURER_SCORE_REWARD;
-        game.bodyLength += DEVOURER_BODY_REWARD;
-        game.message = `${defeatedName}被彻底净化，奖励 ${DEVOURER_SCORE_REWARD} 分！`;
-        events.push({
-          type: "boss-defeated",
-          name: defeatedName,
-          reward: DEVOURER_SCORE_REWARD,
-        });
-      } else {
-        game.message = `核心命中，破坏 ${damage} 层护甲！`;
-        events.push({
-          type: "boss-hit",
-          damage,
-          armor: game.boss.armor,
-        });
+      game.enemies = game.enemies.filter((enemy) => !trappedIds.has(enemy.id));
+      game.lastRing = ring;
+      game.closureFlash = 1;
+      game.closureCooldown = SUCCESSFUL_CLOSURE_COOLDOWN;
+
+      if (captured > 0) {
+        game.kills += captured;
+        game.bodyLength += captured * 31;
+        if (game.tutorialComplete) {
+          game.message = `闭环成功，净化了 ${captured} 个敌人！`;
+        } else {
+          game.tutorialComplete = true;
+          game.tutorialAutoSteer = false;
+          game.spawnClock = 0;
+          game.message = FIRST_WAVE_MESSAGE;
+        }
+        events.push({ type: "capture", count: captured, totalKills: game.kills });
       }
-    } else if (captured === 0) {
-      game.message = "形成了空环，没有敌人被圈住";
-      events.push({ type: "empty-loop" });
-    }
 
-    const pointsToRelease = Math.min(9, Math.max(0, game.trail.length - 25));
-    game.trail.splice(0, pointsToRelease);
+      if (bossCoreCaptured && game.boss) {
+        const damage = damageDevourerBoss(game.boss, 1);
+
+        if (game.boss.armor <= 0) {
+          const defeatedBoss = game.boss;
+          const defeatedName = defeatedBoss.name;
+          game.bossDefeatEffect = {
+            x: defeatedBoss.x,
+            y: defeatedBoss.y,
+            name: defeatedName,
+            reward: DEVOURER_SCORE_REWARD,
+            remaining: DEVOURER_DEFEAT_EFFECT_SECONDS,
+            duration: DEVOURER_DEFEAT_EFFECT_SECONDS,
+          };
+          game.boss = null;
+          game.bossDefeated = true;
+          game.kills += DEVOURER_SCORE_REWARD;
+          game.bodyLength += DEVOURER_BODY_REWARD;
+          game.message = `${defeatedName}被彻底净化，奖励 ${DEVOURER_SCORE_REWARD} 分！`;
+          events.push({
+            type: "boss-defeated",
+            name: defeatedName,
+            reward: DEVOURER_SCORE_REWARD,
+          });
+        } else {
+          game.message = `核心命中，破坏 ${damage} 层护甲！`;
+          events.push({
+            type: "boss-hit",
+            damage,
+            armor: game.boss.armor,
+          });
+        }
+      } else if (captured === 0) {
+        game.message = "形成了空环，没有敌人被圈住";
+        events.push({ type: "empty-loop" });
+      }
+
+      const pointsToRelease = Math.min(9, Math.max(0, game.trail.length - 25));
+      game.trail.splice(0, pointsToRelease);
+    } else {
+      game.closureCooldown = INVALID_CLOSURE_COOLDOWN;
+    }
   }
 
   if (!game.tutorialComplete && game.lives > 0 && game.enemies.length === 0) {

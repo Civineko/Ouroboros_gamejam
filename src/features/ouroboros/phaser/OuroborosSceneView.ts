@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import {
   BODY_WIDTH,
+  BULLET_HIT_LENGTH_PENALTY,
   HEAD_RADIUS,
   levelColor,
   TAIL_RADIUS,
@@ -8,7 +9,7 @@ import {
   WORLD_WIDTH,
 } from "../engine/config";
 import { DEVOURER_ENTRANCE_SECONDS } from "../engine/bosses/bossCatalog";
-import type { Enemy, GameState, Point, PowerUp } from "../engine/types";
+import type { Bullet, Enemy, GameState, Point, PowerUp } from "../engine/types";
 import { OUROBOROS_ART_KEYS } from "./assets/assetCatalog";
 import { paintEnemyIcon } from "./assets/placeholders/enemyIconPainters";
 import { paintPowerUpIcon } from "./assets/placeholders/powerUpIconPainters";
@@ -50,6 +51,10 @@ interface EnemyView {
   graphics: Phaser.GameObjects.Graphics;
 }
 
+interface BulletView {
+  graphics: Phaser.GameObjects.Graphics;
+}
+
 interface PowerUpView {
   container: Phaser.GameObjects.Container;
   graphics: Phaser.GameObjects.Graphics;
@@ -86,7 +91,9 @@ export class OuroborosSceneView {
   private readonly bossIndicator: Phaser.GameObjects.Graphics;
   private readonly body: Phaser.GameObjects.Graphics;
   private readonly head: Phaser.GameObjects.Graphics;
+  private readonly headFlash: Phaser.GameObjects.Graphics;
   private readonly enemies = new Map<number, EnemyView>();
+  private readonly bullets = new Map<number, BulletView>();
   private readonly powerUps = new Map<number, PowerUpView>();
   private introRevealing = false;
   private currentLevel = 1;
@@ -118,6 +125,7 @@ export class OuroborosSceneView {
       .setScrollFactor(0);
     this.body = scene.add.graphics().setDepth(3);
     this.head = scene.add.graphics().setDepth(4);
+    this.headFlash = scene.add.graphics().setDepth(5);
 
     this.drawBackground(COLORS.stage);
     this.drawHead();
@@ -137,6 +145,7 @@ export class OuroborosSceneView {
     this.drawBossDefeat(game);
     this.drawBossIndicator(game);
     this.syncEnemies(game);
+    this.syncBullets(game);
     this.syncPowerUps(game);
     this.drawBody(game);
 
@@ -150,6 +159,15 @@ export class OuroborosSceneView {
             ? 0.45
             : 1,
         );
+      }
+
+      // 被子弹命中红色闪烁
+      this.headFlash.clear();
+      this.headFlash.setPosition(head.x, head.y);
+      if (game.bulletHitFlash > 0) {
+        const alpha = Math.floor(game.bulletHitFlash * 20) % 2 === 0 ? 0.7 : 0.3;
+        this.headFlash.fillStyle(0xff3030, alpha);
+        this.headFlash.fillCircle(0, 0, HEAD_RADIUS + 4);
       }
     }
   }
@@ -246,6 +264,8 @@ export class OuroborosSceneView {
   destroy(): void {
     for (const view of this.enemies.values()) view.container.destroy(true);
     this.enemies.clear();
+    for (const view of this.bullets.values()) view.graphics.destroy(true);
+    this.bullets.clear();
     for (const view of this.powerUps.values()) view.container.destroy(true);
     this.powerUps.clear();
     this.bossBodyArt.destroy();
@@ -315,6 +335,25 @@ export class OuroborosSceneView {
     this.body.fillCircle(tail.x, tail.y, TAIL_RADIUS);
     this.body.fillStyle(COLORS.tailCore, 1);
     this.body.fillCircle(tail.x, tail.y, 6);
+
+    // 被子弹命中时尾部红色闪烁
+    if (game.tailShrinkFlash > 0) {
+      const flashAlpha = Math.floor(game.tailShrinkFlash * 20) % 2 === 0 ? 0.8 : 0.2;
+      this.body.lineStyle(BODY_WIDTH + 4, 0xff3030, flashAlpha);
+
+      let accumulated = 0;
+      for (let i = 1; i < game.trail.length && accumulated < BULLET_HIT_LENGTH_PENALTY; i++) {
+        const prev = game.trail[i - 1];
+        const curr = game.trail[i];
+        if (!prev || !curr) continue;
+        const segLen = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+        this.body.beginPath();
+        this.body.moveTo(prev.x, prev.y);
+        this.body.lineTo(curr.x, curr.y);
+        this.body.strokePath();
+        accumulated += segLen;
+      }
+    }
   }
 
   private drawBoss(game: GameState): void {
@@ -396,7 +435,12 @@ export class OuroborosSceneView {
         game.boss.target.y - offsetY,
       );
       this.bossTelegraph.lineStyle(6, COLORS.bossTelegraph, pulse * 0.48);
-      this.bossTelegraph.lineBetween(game.boss.x, game.boss.y, game.boss.target.x, game.boss.target.y);
+      this.bossTelegraph.lineBetween(
+        game.boss.x,
+        game.boss.y,
+        game.boss.target.x,
+        game.boss.target.y,
+      );
       this.bossTelegraph.fillStyle(COLORS.bossTelegraph, pulse);
       this.bossTelegraph.fillCircle(
         game.boss.target.x,
@@ -549,7 +593,6 @@ export class OuroborosSceneView {
     const progress = clamp01(1 - effect.remaining / effect.duration);
     const { x, y } = effect;
 
-    // 先将能量压入核心，再用一次高亮爆发明确告诉玩家战斗已经结束。
     const implosion = clamp01(progress / 0.18);
     if (implosion < 1) {
       const radius = 22 + (1 - implosion) * 112;
@@ -567,7 +610,6 @@ export class OuroborosSceneView {
       this.bossDefeat.fillCircle(x, y, 13 + flash * 52);
     }
 
-    // 三层错开的冲击波形成主节奏，最外圈在手机缩放下也能读清。
     const ringDelays = [0.1, 0.19, 0.3] as const;
     for (let index = 0; index < ringDelays.length; index += 1) {
       const ringProgress = clamp01((progress - ringDelays[index]!) / 0.58);
@@ -609,7 +651,6 @@ export class OuroborosSceneView {
       }
     }
 
-    // 粒子轨迹由索引确定，不创建每帧对象，保证重放一致并控制 Android 开销。
     for (let index = 0; index < 30; index += 1) {
       const delay = (index % 6) * 0.015;
       const particleProgress = clamp01((progress - 0.09 - delay) / 0.78);
@@ -725,7 +766,9 @@ export class OuroborosSceneView {
 
       view.container.setPosition(enemy.x, enemy.y);
       view.container.setRotation(
-        enemy.kind === "stationary" ? 0 : movementAngle,
+        enemy.kind === "shooter" ? enemy.heading :
+        enemy.kind === "stationary" ? 0 :
+        movementAngle,
       );
       view.graphics.clear();
       paintEnemyIcon({ graphics: view.graphics, enemy, size });
@@ -739,6 +782,36 @@ export class OuroborosSceneView {
 
     const view = { container, graphics };
     this.enemies.set(enemy.id, view);
+    return view;
+  }
+
+  private syncBullets(game: GameState): void {
+    const liveIds = new Set(game.bullets.map((bullet) => bullet.id));
+    for (const [id, view] of this.bullets) {
+      if (!liveIds.has(id)) {
+        view.graphics.destroy(true);
+        this.bullets.delete(id);
+      }
+    }
+
+    for (const bullet of game.bullets) {
+      const view = this.bullets.get(bullet.id) ?? this.createBulletView(bullet);
+      view.graphics.clear();
+      // 绘制子弹：小圆形 + 拖尾
+      view.graphics.fillStyle(0xf4d872, 0.9);
+      view.graphics.fillCircle(bullet.x, bullet.y, bullet.radius);
+      // 拖尾
+      const tailX = bullet.x - bullet.velocityX * 0.03;
+      const tailY = bullet.y - bullet.velocityY * 0.03;
+      view.graphics.lineStyle(2, 0xff9e4a, 0.6);
+      view.graphics.lineBetween(bullet.x, bullet.y, tailX, tailY);
+    }
+  }
+
+  private createBulletView(bullet: Bullet): BulletView {
+    const graphics = this.scene.add.graphics().setDepth(2);
+    const view = { graphics };
+    this.bullets.set(bullet.id, view);
     return view;
   }
 

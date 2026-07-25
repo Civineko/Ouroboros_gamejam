@@ -7,17 +7,43 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./config";
-import { createDevourerBoss } from "./bosses/bossSystem";
 import { DEVOURER_DEFEAT_EFFECT_SECONDS } from "./bosses/bossCatalog";
+import { createDevourerBoss } from "./bosses/bossSystem";
 import {
   createEnemy,
   createGameState,
   setCardinalDirection,
   snapshotHud,
+  steerToward,
+  stopSteering,
   updateGame,
 } from "./gameEngine";
+import type { CollisionSystem, Point } from "./types";
 
 const fixedRandom = () => 0.25;
+const noCollisions: CollisionSystem = {
+  circleToCircle: () => null,
+  circleToSegment: () => null,
+  containsPoint: () => false,
+};
+
+function sampleClosedPolygon(
+  vertices: readonly Point[],
+  pointsPerEdge = 9,
+): Point[] {
+  return vertices.flatMap((start, index) => {
+    const end = vertices[(index + 1) % vertices.length];
+    if (!end) return [];
+
+    return Array.from({ length: pointsPerEdge }, (_, step) => {
+      const progress = step / pointsPerEdge;
+      return {
+        x: start.x + (end.x - start.x) * progress,
+        y: start.y + (end.y - start.y) * progress,
+      };
+    });
+  });
+}
 
 describe("game engine", () => {
   it("creates a complete, deterministic initial state", () => {
@@ -29,10 +55,11 @@ describe("game engine", () => {
     expect(game.enemies).toHaveLength(1);
     expect(game.enemies[0]?.kind).toBe("stationary");
     expect(game.enemies[0]).toMatchObject({
-      x: WORLD_WIDTH / 2 - 75,
+      x: WORLD_WIDTH / 2,
       y: WORLD_HEIGHT / 2,
     });
     expect(game.tutorialComplete).toBe(false);
+    expect(game.tutorialAutoSteer).toBe(true);
     expect(game.boss).toBeNull();
     expect(game.bossDefeated).toBe(false);
     expect(game.bossDefeatEffect).toBeNull();
@@ -49,15 +76,15 @@ describe("game engine", () => {
     const center = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
     const xCoordinates = game.trail.map((point) => point.x);
     const yCoordinates = game.trail.map((point) => point.y);
-    expect(Math.min(...xCoordinates)).toBeLessThan(center.x - 120);
-    expect(Math.max(...xCoordinates)).toBeGreaterThan(center.x + 120);
-    expect(Math.min(...yCoordinates)).toBeLessThan(center.y - 60);
-    expect(Math.max(...yCoordinates)).toBeGreaterThan(center.y + 60);
+    expect(Math.min(...xCoordinates)).toBeLessThan(center.x - 73);
+    expect(Math.max(...xCoordinates)).toBeGreaterThan(center.x + 69);
+    expect(Math.min(...yCoordinates)).toBeLessThan(center.y - 73);
+    expect(Math.max(...yCoordinates)).toBeGreaterThan(center.y + 73);
 
     const centerCrossings = game.trail.filter(
       (point) => Math.hypot(point.x - center.x, point.y - center.y) < 10,
     );
-    expect(centerCrossings.length).toBeGreaterThanOrEqual(2);
+    expect(centerCrossings).toHaveLength(0);
 
     const tail = game.trail[0];
     const head = game.trail.at(-1);
@@ -65,9 +92,47 @@ describe("game engine", () => {
     expect(head).toBeDefined();
     if (tail && head) {
       const opening = Math.hypot(head.x - tail.x, head.y - tail.y);
-      expect(opening).toBeGreaterThan(25);
-      expect(opening).toBeLessThan(40);
+      expect(opening).toBeGreaterThan(50);
+      expect(opening).toBeLessThan(52);
     }
+  });
+
+  it("automatically closes the tutorial ring when the player does nothing", () => {
+    const game = createGameState(fixedRandom);
+    const events = [];
+
+    for (let frame = 0; frame < 180 && !game.tutorialComplete; frame += 1) {
+      events.push(...updateGame(game, 1 / 60, fixedRandom));
+    }
+
+    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
+    expect(game.tutorialComplete).toBe(true);
+    expect(game.tutorialAutoSteer).toBe(false);
+  });
+
+  it("hands tutorial steering to the player after direct input", () => {
+    const game = createGameState(fixedRandom);
+
+    steerToward(game, { x: 300, y: 200 });
+
+    expect(game.tutorialAutoSteer).toBe(false);
+    expect(game.target).toEqual({ x: 300, y: 200 });
+  });
+
+  it("keeps the current heading after pointer steering is released", () => {
+    const game = createGameState(fixedRandom);
+    game.enemies = [];
+    game.tutorialComplete = true;
+
+    steerToward(game, { x: 300, y: 200 });
+    updateGame(game, 1 / 60, fixedRandom);
+    const releasedAngle = game.angle;
+
+    stopSteering(game);
+    updateGame(game, 0.1, fixedRandom);
+
+    expect(game.steering).toBe(false);
+    expect(game.angle).toBe(releasedAngle);
   });
 
   it("does not spawn extra enemies during the tutorial", () => {
@@ -86,12 +151,14 @@ describe("game engine", () => {
 
   it("rejects a direct reverse but accepts a perpendicular turn", () => {
     const game = createGameState(fixedRandom);
-
-    setCardinalDirection(game, "left");
-    expect(game.angle).toBe(0);
+    const initialAngle = game.angle;
 
     setCardinalDirection(game, "up");
-    expect(game.angle).toBe(-Math.PI / 2);
+    expect(game.angle).toBe(initialAngle);
+
+    setCardinalDirection(game, "right");
+    expect(game.angle).toBe(0);
+    expect(game.tutorialAutoSteer).toBe(false);
   });
 
   it("creates a deterministic stationary enemy without extra random calls", () => {
@@ -229,9 +296,9 @@ describe("game engine", () => {
     expect(events).toEqual([]);
     expect(enemy.velocityX).toBe(-30);
     expect(enemy.velocityY).toBe(-12);
-    expect(enemy.y).toBeGreaterThanOrEqual(
-      bodyPoint.y + enemy.size + BODY_WIDTH / 2,
-    );
+    expect(
+      Math.hypot(enemy.x - bodyPoint.x, enemy.y - bodyPoint.y),
+    ).toBeGreaterThanOrEqual(enemy.size + BODY_WIDTH / 2);
   });
 
   it("does not let the neck collision block an enemy approaching the head", () => {
@@ -304,6 +371,112 @@ describe("game engine", () => {
     expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
     expect(game.enemies).toHaveLength(0);
     expect(game.bodyLength).toBe(1031);
+  });
+
+  it("closes at the inclusive visual contact distance", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = sampleClosedPolygon([
+      { x: 300, y: 200 },
+      { x: 500, y: 200 },
+      { x: 500, y: 400 },
+      { x: 300, y: 400 },
+    ]);
+    const tail = game.trail[0];
+    expect(tail).toBeDefined();
+    if (!tail) return;
+
+    game.trail[game.trail.length - 1] = { x: tail.x + 34, y: tail.y };
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [
+      {
+        ...createEnemy(20, 0, fixedRandom),
+        x: 400,
+        y: 300,
+      },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
+  });
+
+  it("does not close beyond the visual contact distance", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = sampleClosedPolygon([
+      { x: 300, y: 200 },
+      { x: 500, y: 200 },
+      { x: 500, y: 400 },
+      { x: 300, y: 400 },
+    ]);
+    const tail = game.trail[0];
+    expect(tail).toBeDefined();
+    if (!tail) return;
+
+    game.trail[game.trail.length - 1] = { x: tail.x + 34.01, y: tail.y };
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [
+      {
+        ...createEnemy(20, 0, fixedRandom),
+        x: 400,
+        y: 300,
+      },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toEqual([]);
+    expect(game.enemies).toHaveLength(1);
+  });
+
+  it("preserves the previous minimum loop size after stroke-area capture", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 400 + Math.cos(angle) * 27,
+        y: 300 + Math.sin(angle) * 27,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [
+      {
+        ...createEnemy(20, 0, fixedRandom),
+        x: 400,
+        y: 300,
+      },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
+    expect(game.enemies).toHaveLength(0);
+  });
+
+  it("throttles invalid small-loop checks", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 400 + Math.cos(angle) * 26,
+        y: 300 + Math.sin(angle) * 26,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toEqual([]);
+    expect(game.closureCooldown).toBe(0.45);
+    expect(game.lastRing).toBeNull();
   });
 
   it("finishes the tutorial after the first captured enemy", () => {
@@ -388,21 +561,9 @@ describe("game engine", () => {
     game.bodyLength = 1000;
     game.closureCooldown = 0;
     game.enemies = [
-      {
-        ...createEnemy(20, 0, fixedRandom),
-        x: 380,
-        y: 300,
-      },
-      {
-        ...createEnemy(21, 0, fixedRandom),
-        x: 420,
-        y: 300,
-      },
-      {
-        ...createEnemy(22, 0, fixedRandom),
-        x: 800,
-        y: 600,
-      },
+      { ...createEnemy(20, 0, fixedRandom), x: 380, y: 300 },
+      { ...createEnemy(21, 0, fixedRandom), x: 420, y: 300 },
+      { ...createEnemy(22, 0, fixedRandom), x: 800, y: 600 },
     ];
 
     const events = updateGame(game, 0, fixedRandom);
@@ -419,7 +580,7 @@ describe("game engine", () => {
     });
   });
 
-  it("damages the boss core with a closed ring and doubles resonance damage", () => {
+  it("damages the boss core with a closed ring", () => {
     const game = createGameState(fixedRandom);
     game.tutorialComplete = true;
     game.enemies = [];
@@ -427,17 +588,14 @@ describe("game engine", () => {
     game.boss.x = 400;
     game.boss.y = 300;
     game.boss.core.orbitAngle = 0;
-    game.boss.core.x = 518;
-    game.boss.core.y = 300;
     game.boss.action = "stalking";
     game.boss.core.exposed = true;
     game.boss.core.cooldown = 0;
-    game.activeEffects = [{ kind: "resonance", remaining: 5 }];
     game.trail = Array.from({ length: 36 }, (_, index) => {
       const angle = (Math.PI * 2 * index) / 35;
       return {
-        x: game.boss!.core.x + Math.cos(angle) * 45,
-        y: game.boss!.core.y + Math.sin(angle) * 45,
+        x: 518 + Math.cos(angle) * 45,
+        y: 300 + Math.sin(angle) * 45,
       };
     });
     game.bodyLength = 1000;
@@ -445,9 +603,9 @@ describe("game engine", () => {
 
     const events = updateGame(game, 0, fixedRandom);
 
-    expect(game.boss?.armor).toBe(4);
+    expect(game.boss?.armor).toBe(5);
     expect(game.boss?.core.exposed).toBe(false);
-    expect(events).toContainEqual({ type: "boss-hit", damage: 2, armor: 4 });
+    expect(events).toContainEqual({ type: "boss-hit", damage: 1, armor: 5 });
     expect(events).not.toContainEqual({ type: "empty-loop" });
   });
 
@@ -484,16 +642,14 @@ describe("game engine", () => {
     game.boss.y = 300;
     game.boss.armor = 1;
     game.boss.core.orbitAngle = 0;
-    game.boss.core.x = 518;
-    game.boss.core.y = 300;
     game.boss.action = "stalking";
     game.boss.core.exposed = true;
     game.boss.core.cooldown = 0;
     game.trail = Array.from({ length: 36 }, (_, index) => {
       const angle = (Math.PI * 2 * index) / 35;
       return {
-        x: game.boss!.core.x + Math.cos(angle) * 45,
-        y: game.boss!.core.y + Math.sin(angle) * 45,
+        x: 518 + Math.cos(angle) * 45,
+        y: 300 + Math.sin(angle) * 45,
       };
     });
     game.bodyLength = 1000;

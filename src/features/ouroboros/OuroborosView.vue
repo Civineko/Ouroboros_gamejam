@@ -28,24 +28,38 @@ function bossStatus(boss: BossSnapshot | null): string {
   }
   return boss.coreExposed ? "核心已暴露 · 闭环捕获" : "核心重组中";
 }
+
+function handleUiClick(event: MouseEvent): void {
+  const target = event.target;
+  if (target instanceof Element && target.closest("button")) {
+    game.playUiClick();
+  }
+}
 </script>
 
 <template>
-  <main class="ouroboros-app" :class="{ 'is-paused': game.paused.value }">
+  <main
+    class="ouroboros-app"
+    :class="{ 'is-paused': game.paused.value }"
+    @pointerdown.capture="game.unlockAudio"
+    @click.capture="handleUiClick"
+  >
     <OuroborosStage
       ref="stage"
       :started="game.started.value"
       :paused="game.paused.value"
       :game-over="game.gameOver.value"
-      :master-volume="game.masterVolume.value"
-      :muted="game.muted.value"
+      :music-volume="game.musicVolume.value"
+      :effects-volume="game.effectsVolume.value"
       :hud="game.hud.value"
       @start="game.start"
       @pause="game.togglePause"
       @restart="game.start"
       @end="game.end"
-      @volume-change="game.setMasterVolume"
-      @toggle-mute="game.toggleMute"
+      @music-volume-change="game.setMusicVolume"
+      @effects-volume-change="game.setEffectsVolume"
+      @toggle-music-mute="game.toggleMusicMute"
+      @toggle-effects-mute="game.toggleEffectsMute"
     />
 
     <div
@@ -299,7 +313,7 @@ function bossStatus(boss: BossSnapshot | null): string {
   pointer-events: none;
   background: rgba(126, 22, 30, 0.9);
   border: 2px solid rgba(255, 181, 161, 0.96);
-  border-radius: 9px;
+  border-radius: 8px;
   box-shadow:
     0 8px 26px rgba(74, 9, 17, 0.42),
     0 0 24px rgba(239, 98, 79, 0.66);
@@ -314,7 +328,6 @@ function bossStatus(boss: BossSnapshot | null): string {
 
 .boss-danger-callout strong {
   font-size: 13px;
-  letter-spacing: 0.08em;
 }
 
 .boss-danger-callout span {
@@ -323,28 +336,10 @@ function bossStatus(boss: BossSnapshot | null): string {
 }
 
 .is-paused .boss-danger-flash,
-.is-paused .boss-danger-callout {
+.is-paused .boss-danger-callout,
+.is-paused .boss-victory,
+.is-paused .boss-victory * {
   animation-play-state: paused;
-}
-
-@keyframes danger-screen-pulse {
-  from {
-    opacity: 0.46;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes danger-callout-pulse {
-  from {
-    transform: scale(0.96);
-  }
-
-  to {
-    transform: scale(1.04);
-  }
 }
 
 .boss-status {
@@ -364,7 +359,7 @@ function bossStatus(boss: BossSnapshot | null): string {
   pointer-events: none;
   background: rgba(25, 37, 49, 0.72);
   border: 1px solid color-mix(in srgb, var(--boss-accent) 72%, transparent);
-  border-radius: 9px;
+  border-radius: 8px;
   box-shadow: 0 7px 18px rgba(25, 37, 49, 0.26);
   transform: translateX(-50%);
   backdrop-filter: blur(9px);
@@ -438,7 +433,6 @@ function bossStatus(boss: BossSnapshot | null): string {
   margin-right: 6px;
   color: #fff5ca;
   font-size: 10px;
-  letter-spacing: 0.08em;
 }
 
 .boss-armor {
@@ -454,18 +448,6 @@ function bossStatus(boss: BossSnapshot | null): string {
   box-shadow: 0 0 9px rgba(239, 98, 79, 0.42);
 }
 
-@keyframes boss-warning {
-  from {
-    box-shadow: 0 7px 18px rgba(25, 37, 49, 0.26);
-  }
-
-  to {
-    box-shadow:
-      0 7px 18px rgba(25, 37, 49, 0.26),
-      0 0 18px color-mix(in srgb, var(--boss-accent) 62%, transparent);
-  }
-}
-
 .boss-armor span.broken {
   background: rgba(255, 253, 247, 0.18);
   box-shadow: none;
@@ -473,18 +455,6 @@ function bossStatus(boss: BossSnapshot | null): string {
 
 .active-buffs.with-boss {
   top: calc(max(14px, env(safe-area-inset-top)) + 158px);
-}
-
-@keyframes objective-pulse {
-  from {
-    opacity: 0.68;
-    transform: scale(0.9);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1.08);
-  }
 }
 
 .boss-victory {
@@ -507,7 +477,7 @@ function bossStatus(boss: BossSnapshot | null): string {
     linear-gradient(110deg, rgba(88, 213, 201, 0.18), rgba(183, 124, 255, 0.25)),
     rgba(25, 37, 49, 0.83);
   border: 2px solid rgba(255, 245, 202, 0.86);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow:
     0 14px 38px rgba(25, 37, 49, 0.38),
     0 0 36px rgba(242, 186, 73, 0.36),
@@ -515,11 +485,6 @@ function bossStatus(boss: BossSnapshot | null): string {
   transform: translateX(-50%);
   animation: boss-victory 2.2s cubic-bezier(0.2, 0.82, 0.24, 1) both;
   backdrop-filter: blur(10px);
-}
-
-.is-paused .boss-victory,
-.is-paused .boss-victory * {
-  animation-play-state: paused;
 }
 
 .boss-victory > svg {
@@ -541,7 +506,6 @@ function bossStatus(boss: BossSnapshot | null): string {
   color: rgba(255, 245, 202, 0.82);
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 0.18em;
 }
 
 .boss-victory strong {
@@ -571,53 +535,45 @@ function bossStatus(boss: BossSnapshot | null): string {
   animation-delay: calc(var(--ray) * 18ms);
 }
 
+@keyframes danger-screen-pulse {
+  from { opacity: 0.46; }
+  to { opacity: 1; }
+}
+
+@keyframes danger-callout-pulse {
+  from { transform: scale(0.96); }
+  to { transform: scale(1.04); }
+}
+
+@keyframes boss-warning {
+  from { box-shadow: 0 7px 18px rgba(25, 37, 49, 0.26); }
+  to {
+    box-shadow:
+      0 7px 18px rgba(25, 37, 49, 0.26),
+      0 0 18px color-mix(in srgb, var(--boss-accent) 62%, transparent);
+  }
+}
+
+@keyframes objective-pulse {
+  from { opacity: 0.68; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1.08); }
+}
+
 @keyframes boss-victory {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) scale(0.58);
-    filter: brightness(2.2);
-  }
-
-  12% {
-    opacity: 1;
-    transform: translateX(-50%) scale(1.08);
-  }
-
-  20%,
-  78% {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
-    filter: brightness(1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-24px) scale(0.96);
-  }
+  0% { opacity: 0; transform: translateX(-50%) scale(0.58); filter: brightness(2.2); }
+  12% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+  20%, 78% { opacity: 1; transform: translateX(-50%) scale(1); filter: brightness(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-24px) scale(0.96); }
 }
 
 @keyframes victory-spark {
-  from {
-    opacity: 0.62;
-    transform: rotate(-8deg) scale(0.88);
-  }
-
-  to {
-    opacity: 1;
-    transform: rotate(8deg) scale(1.12);
-  }
+  from { opacity: 0.62; transform: rotate(-8deg) scale(0.88); }
+  to { opacity: 1; transform: rotate(8deg) scale(1.12); }
 }
 
 @keyframes victory-ray {
-  from {
-    opacity: 0;
-    transform: rotate(calc(var(--ray) * 30deg)) scaleX(0.16);
-  }
-
-  to {
-    opacity: 0.52;
-    transform: rotate(calc(var(--ray) * 30deg)) scaleX(1);
-  }
+  from { opacity: 0; transform: rotate(calc(var(--ray) * 30deg)) scaleX(0.16); }
+  to { opacity: 0.52; transform: rotate(calc(var(--ray) * 30deg)) scaleX(1); }
 }
 
 @media (max-width: 520px) {
@@ -648,24 +604,10 @@ function bossStatus(boss: BossSnapshot | null): string {
     top: calc(max(14px, env(safe-area-inset-top)) + 51px);
   }
 
-  .boss-danger-flash {
-    box-shadow:
-      inset 0 0 0 4px rgba(255, 109, 91, 0.76),
-      inset 0 0 48px rgba(185, 24, 34, 0.72);
-  }
-
   .boss-danger-callout {
     bottom: max(78px, calc(env(safe-area-inset-bottom) + 20px));
     min-height: 44px;
     padding: 8px 13px;
-  }
-
-  .boss-danger-callout strong {
-    font-size: 12px;
-  }
-
-  .boss-danger-callout span {
-    font-size: 10px;
   }
 
   .boss-status {

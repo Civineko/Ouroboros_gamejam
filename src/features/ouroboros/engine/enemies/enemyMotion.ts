@@ -194,6 +194,10 @@ export function updateEnemyMotion(
       enemy.velocityX = 0;
       enemy.velocityY = 0;
       enemy.collisionRecovery = 0;
+      // 射手始终面向蛇头
+      if (enemy.kind === "shooter") {
+        enemy.heading = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+      }
       continue;
     }
 

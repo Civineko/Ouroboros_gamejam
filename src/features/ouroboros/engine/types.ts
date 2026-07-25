@@ -3,16 +3,15 @@ export interface Point {
   y: number;
 }
 
-export type EnemyKind = "stationary" | "wanderer" | "tracker";
+export type EnemyKind = "stationary" | "wanderer" | "tracker" | "shooter";
 export type PowerUpKind =
   | "shield"
   | "heal"
   | "stasis"
-  | "haste"
-  | "resonance";
+  | "haste";
 export type TimedPowerUpKind = Extract<
   PowerUpKind,
-  "stasis" | "haste" | "resonance"
+  "stasis" | "haste"
 >;
 
 export interface Enemy extends Point {
@@ -40,6 +39,14 @@ export interface PowerUp extends Point {
 export interface ActiveEffect {
   kind: TimedPowerUpKind;
   remaining: number;
+}
+
+export interface Bullet extends Point {
+  id: number;
+  velocityX: number;
+  velocityY: number;
+  radius: number;
+  shooterId: number;
 }
 
 export type BossPhase = 1 | 2 | 3;
@@ -98,6 +105,7 @@ export interface GameState {
   angle: number;
   target: Point;
   steering: boolean;
+  tutorialAutoSteer: boolean;
   bodyLength: number;
   enemies: Enemy[];
   spawnClock: number;
@@ -125,6 +133,14 @@ export interface GameState {
   globalSpeed: number;
   /** 关卡计时器（秒） */
   levelClock: number;
+  /** 子弹列表 */
+  bullets: Bullet[];
+  /** 下一个子弹 ID */
+  nextBulletId: number;
+  /** 被子弹命中的红色闪烁计时器 */
+  bulletHitFlash: number;
+  /** 尾部缩减红色闪烁计时器 */
+  tailShrinkFlash: number;
 }
 
 export interface BuffSnapshot {
@@ -192,6 +208,7 @@ export type GameEvent =
   | { type: "power-up-collected"; kind: PowerUpKind }
   | { type: "shield-blocked" }
   | { type: "level-up"; level: number }
+  | { type: "bullet-hit" }
   | { type: "boss-spawned"; name: string; armor: number }
   | { type: "boss-charge" }
   | { type: "boss-hit"; damage: number; armor: number }

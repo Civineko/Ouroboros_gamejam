@@ -6,20 +6,18 @@ export interface OuroborosStageExpose {
 
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import {
-  CircleDotDashed,
-  Play,
-  RotateCcw,
-} from "@lucide/vue";
+import { Play } from "@lucide/vue";
 import type { HudSnapshot } from "../engine/types";
+import { OUROBOROS_UI_ART } from "../ui/uiArtCatalog";
+import GameOverScreen from "./GameOverScreen.vue";
 import PauseMenu from "./PauseMenu.vue";
 
 defineProps<{
   started: boolean;
   paused: boolean;
   gameOver: boolean;
-  masterVolume: number;
-  muted: boolean;
+  musicVolume: number;
+  effectsVolume: number;
   hud: HudSnapshot;
 }>();
 
@@ -28,8 +26,10 @@ const emit = defineEmits<{
   pause: [];
   restart: [];
   end: [];
-  volumeChange: [volume: number];
-  toggleMute: [];
+  musicVolumeChange: [volume: number];
+  effectsVolumeChange: [volume: number];
+  toggleMusicMute: [];
+  toggleEffectsMute: [];
 }>();
 
 const container = useTemplateRef<HTMLElement>("container");
@@ -42,12 +42,20 @@ defineExpose<OuroborosStageExpose>({
 <template>
   <div class="stage-shell">
     <div class="canvas-frame">
-      <div ref="container" class="phaser-host" aria-label="衔尾蛇游戏区域" />
+      <div ref="container" class="phaser-host" aria-label="圈一圈游戏区域" />
 
       <Transition name="intro-cover">
         <div v-if="!started" class="stage-cover stage-cover-intro">
           <div class="intro-brand">
-            <h1>首尾相接</h1>
+            <h1 class="intro-title">
+              <img
+                class="intro-logo"
+                :src="OUROBOROS_UI_ART.mainMenuLogo"
+                width="1236"
+                height="619"
+                alt="圈一圈"
+              />
+            </h1>
             <button type="button" class="primary-command" @click="emit('start')">
               <Play :size="17" fill="currentColor" />
               开始游戏
@@ -61,26 +69,26 @@ defineExpose<OuroborosStageExpose>({
         class="stage-cover stage-cover-dark stage-cover-dialog"
       >
         <PauseMenu
-          :master-volume="masterVolume"
-          :muted="muted"
+          :music-volume="musicVolume"
+          :effects-volume="effectsVolume"
           @resume="emit('pause')"
           @end="emit('end')"
-          @volume-change="emit('volumeChange', $event)"
-          @toggle-mute="emit('toggleMute')"
+          @music-volume-change="emit('musicVolumeChange', $event)"
+          @effects-volume-change="emit('effectsVolumeChange', $event)"
+          @toggle-music-mute="emit('toggleMusicMute')"
+          @toggle-effects-mute="emit('toggleEffectsMute')"
         />
       </div>
 
-      <div v-if="gameOver" class="stage-cover">
-        <CircleDotDashed class="coral" :size="48" :stroke-width="1.5" />
-        <p>THE LOOP IS BROKEN</p>
-        <h2>衔尾之环断开了</h2>
-        <span class="final-score">本局净化 {{ hud.kills }} 个敌人，蛇身成长至 {{ hud.length }}</span>
-        <button type="button" class="primary-command" @click="emit('restart')">
-          <RotateCcw :size="17" />
-          重新开始
-        </button>
-      </div>
-
+      <Transition name="game-over-cover">
+        <div v-if="gameOver" class="stage-cover stage-cover-game-over">
+          <GameOverScreen
+            :hud="hud"
+            @restart="emit('restart')"
+            @exit="emit('end')"
+          />
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -131,17 +139,14 @@ defineExpose<OuroborosStageExpose>({
   align-items: center;
   justify-content: center;
   padding: 24px;
-  color: var(--ink);
+  color: var(--surface);
   text-align: center;
-  background: rgba(247, 244, 235, 0.94);
-  backdrop-filter: blur(4px);
+  background: rgba(18, 36, 40, 0.9);
 }
 
 .stage-cover-intro {
-  color: #20373e;
-  background: rgba(244, 244, 236, 0.24);
-  -webkit-backdrop-filter: blur(3px) saturate(0.84) brightness(1.04);
-  backdrop-filter: blur(3px) saturate(0.84) brightness(1.04);
+  color: var(--ink);
+  background: rgba(18, 36, 40, 0.1);
 }
 
 .stage-cover-intro::after {
@@ -150,7 +155,8 @@ defineExpose<OuroborosStageExpose>({
     max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   pointer-events: none;
   content: "";
-  border: 1px solid rgba(255, 253, 247, 0.28);
+  border: 2px solid rgba(255, 250, 240, 0.46);
+  box-shadow: inset 0 0 0 2px rgba(23, 44, 47, 0.22);
 }
 
 .intro-brand {
@@ -169,47 +175,24 @@ defineExpose<OuroborosStageExpose>({
   animation: brand-arrival 650ms cubic-bezier(0.2, 0.75, 0.25, 1) 780ms both;
 }
 
-.stage-cover > svg {
-  margin-bottom: 14px;
-  color: var(--teal-deep);
-}
-
-.stage-cover > svg.coral {
-  color: var(--coral);
-}
-
-.stage-cover p {
+.intro-title {
+  display: block;
+  width: min(820px, 88vw, 116dvh);
   margin: 0;
-  color: var(--ink-soft);
-  font-size: 9px;
-  font-weight: 900;
+  line-height: 0;
+  letter-spacing: 0;
 }
 
-.stage-cover h1 {
-  margin: 0;
-  color: #fffdf7;
-  font-family:
-    "Arial Black", "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: 58px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0;
-  text-shadow:
-    0 4px 0 rgba(25, 37, 49, 0.2),
-    0 10px 24px rgba(25, 37, 49, 0.2);
-}
-
-.stage-cover h2 {
-  margin: 8px 0 22px;
-  font-family: Georgia, "Songti SC", serif;
-  font-size: 34px;
-  font-weight: 500;
-  letter-spacing: 0;
+.intro-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 9px 0 rgba(23, 44, 47, 0.3));
 }
 
 .stage-cover-dark {
   color: var(--surface);
-  background: rgba(38, 59, 66, 0.82);
+  background: rgba(18, 36, 40, 0.84);
 }
 
 .stage-cover-dialog {
@@ -221,11 +204,29 @@ defineExpose<OuroborosStageExpose>({
   overflow-y: auto;
 }
 
-.final-score {
-  margin: -11px 0 20px;
-  color: var(--ink-soft);
-  font-size: 11px;
-  font-weight: 700;
+.stage-cover-game-over {
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(239, 98, 79, 0.2), transparent 35%),
+    linear-gradient(165deg, rgba(36, 52, 61, 0.95), rgba(20, 27, 35, 0.98));
+  backdrop-filter: blur(8px) saturate(0.72);
+}
+
+.stage-cover-game-over::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background-image:
+    linear-gradient(rgba(255, 253, 247, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 253, 247, 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
 }
 
 .primary-command {
@@ -234,16 +235,16 @@ defineExpose<OuroborosStageExpose>({
   align-items: center;
   justify-content: center;
   min-width: 146px;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 18px;
-  color: var(--surface);
+  color: var(--ink);
   font-size: 12px;
   font-weight: 900;
   cursor: pointer;
-  background: var(--ink);
-  border: 0;
-  border-radius: 8px;
-  box-shadow: 5px 6px 0 rgba(38, 59, 66, 0.18);
+  background: var(--teal);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 4px 5px 0 rgba(13, 29, 32, 0.76);
   transition:
     transform 160ms ease,
     box-shadow 160ms ease,
@@ -254,22 +255,18 @@ defineExpose<OuroborosStageExpose>({
   min-width: 172px;
   min-height: 50px;
   pointer-events: auto;
+  background: var(--amber);
 }
 
 .primary-command:hover {
-  background: #304a53;
+  background: var(--surface);
   transform: translateY(-1px);
-  box-shadow: 5px 8px 0 rgba(38, 59, 66, 0.16);
+  box-shadow: 4px 7px 0 rgba(13, 29, 32, 0.72);
 }
 
 .primary-command:active {
   transform: translate(3px, 4px);
-  box-shadow: 2px 2px 0 rgba(38, 59, 66, 0.18);
-}
-
-.primary-command.amber {
-  color: var(--ink);
-  background: var(--amber);
+  box-shadow: 1px 1px 0 rgba(13, 29, 32, 0.76);
 }
 
 .intro-cover-leave-active {
@@ -282,6 +279,18 @@ defineExpose<OuroborosStageExpose>({
   opacity: 0;
   -webkit-backdrop-filter: blur(0);
   backdrop-filter: blur(0);
+}
+
+.game-over-cover-enter-active {
+  transition:
+    opacity 420ms ease,
+    backdrop-filter 420ms ease;
+}
+
+.game-over-cover-enter-from {
+  opacity: 0;
+  -webkit-backdrop-filter: blur(0) saturate(1);
+  backdrop-filter: blur(0) saturate(1);
 }
 
 @keyframes brand-arrival {
@@ -304,29 +313,11 @@ defineExpose<OuroborosStageExpose>({
       max(34px, calc(env(safe-area-inset-bottom) + 7dvh));
   }
 
-  .stage-cover h1 {
-    font-size: 42px;
-  }
 }
 
 @media (max-width: 560px) {
   .stage-cover {
     padding: 14px;
-  }
-
-  .stage-cover > svg {
-    width: 36px;
-    height: 36px;
-    margin-bottom: 8px;
-  }
-
-  .stage-cover h2 {
-    margin: 5px 0 13px;
-    font-size: 24px;
-  }
-
-  .stage-cover h1 {
-    font-size: 50px;
   }
 
   .primary-command {

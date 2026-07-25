@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Dymon ShouXieTi";
+  src: url("/assets/ouroboros/ui/font_dymon_shouxieti.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   font-family:
@@ -43,6 +51,9 @@ body {
   background: var(--stage);
   overscroll-behavior: none;
   touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #app {
@@ -55,6 +66,11 @@ body {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+img,
+canvas {
+  -webkit-user-drag: none;
 }
 
 button {

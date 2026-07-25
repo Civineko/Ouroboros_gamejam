@@ -1,6 +1,7 @@
 import { onMounted, onUnmounted, readonly, ref, shallowRef } from "vue";
+import { bindNativeAppLifecycle } from "../../../platform/nativeAppLifecycle";
 import {
-  clampMasterVolume,
+  clampVolume,
   DEFAULT_AUDIO_PREFERENCES,
   loadAudioPreferences,
   saveAudioPreferences,
@@ -26,12 +27,16 @@ export function useOuroborosGame(
   const paused = ref(false);
   const gameOver = ref(false);
   const savedAudio = loadAudioPreferences();
-  const masterVolume = ref(savedAudio.masterVolume);
-  const muted = ref(savedAudio.muted);
-  let lastAudibleVolume =
-    savedAudio.masterVolume > 0
-      ? savedAudio.masterVolume
-      : DEFAULT_AUDIO_PREFERENCES.masterVolume;
+  const musicVolume = ref(savedAudio.musicVolume);
+  const effectsVolume = ref(savedAudio.effectsVolume);
+  let lastMusicVolume =
+    savedAudio.musicVolume > 0
+      ? savedAudio.musicVolume
+      : DEFAULT_AUDIO_PREFERENCES.musicVolume;
+  let lastEffectsVolume =
+    savedAudio.effectsVolume > 0
+      ? savedAudio.effectsVolume
+      : DEFAULT_AUDIO_PREFERENCES.effectsVolume;
 
   const initialState = createGameState();
   const bossPreview = import.meta.env.DEV
@@ -78,6 +83,7 @@ export function useOuroborosGame(
   }
   const hud = shallowRef(snapshotHud(initialState));
   let runtime: OuroborosRuntime | null = null;
+  let stopNativeAppLifecycle: () => void = () => undefined;
 
   function start(): void {
     runtime?.scene.startRound();
@@ -92,38 +98,53 @@ export function useOuroborosGame(
   }
 
   function applyAudioPreferences(): void {
-    runtime?.scene.setMasterVolume(muted.value ? 0 : masterVolume.value);
+    runtime?.scene.setAudioVolumes(
+      musicVolume.value,
+      effectsVolume.value,
+    );
   }
 
   function persistAudioPreferences(): void {
     saveAudioPreferences({
-      masterVolume: masterVolume.value,
-      muted: muted.value,
+      musicVolume: musicVolume.value,
+      effectsVolume: effectsVolume.value,
     });
   }
 
-  function setMasterVolume(volume: number): void {
-    const nextVolume = clampMasterVolume(volume);
-    masterVolume.value = nextVolume;
-
-    if (nextVolume > 0) {
-      lastAudibleVolume = nextVolume;
-      muted.value = false;
-    } else {
-      muted.value = true;
-    }
-
+  function setMusicVolume(volume: number): void {
+    musicVolume.value = clampVolume(
+      volume,
+      DEFAULT_AUDIO_PREFERENCES.musicVolume,
+    );
+    if (musicVolume.value > 0) lastMusicVolume = musicVolume.value;
     applyAudioPreferences();
     persistAudioPreferences();
   }
 
-  function toggleMute(): void {
-    if (muted.value && masterVolume.value === 0) {
-      masterVolume.value = lastAudibleVolume;
-    }
-    muted.value = !muted.value;
+  function setEffectsVolume(volume: number): void {
+    effectsVolume.value = clampVolume(
+      volume,
+      DEFAULT_AUDIO_PREFERENCES.effectsVolume,
+    );
+    if (effectsVolume.value > 0) lastEffectsVolume = effectsVolume.value;
     applyAudioPreferences();
     persistAudioPreferences();
+  }
+
+  function toggleMusicMute(): void {
+    setMusicVolume(musicVolume.value === 0 ? lastMusicVolume : 0);
+  }
+
+  function toggleEffectsMute(): void {
+    setEffectsVolume(effectsVolume.value === 0 ? lastEffectsVolume : 0);
+  }
+
+  function playUiClick(): void {
+    runtime?.scene.playUiClick();
+  }
+
+  function unlockAudio(): void {
+    runtime?.scene.unlockAudio();
   }
 
   function steer(direction: CardinalDirection): void {
@@ -148,10 +169,27 @@ export function useOuroborosGame(
       },
       initialState,
     );
+    stopNativeAppLifecycle = bindNativeAppLifecycle({
+      onPause() {
+        runtime?.scene.pauseRound();
+      },
+      onBack() {
+        if (gameOver.value) {
+          end();
+          return true;
+        }
+        if (started.value) {
+          togglePause();
+          return true;
+        }
+        return false;
+      },
+    });
     applyAudioPreferences();
   });
 
   onUnmounted(() => {
+    stopNativeAppLifecycle();
     runtime?.game.destroy(true);
     runtime = null;
   });
@@ -160,14 +198,18 @@ export function useOuroborosGame(
     started: readonly(started),
     paused: readonly(paused),
     gameOver: readonly(gameOver),
-    masterVolume: readonly(masterVolume),
-    muted: readonly(muted),
+    musicVolume: readonly(musicVolume),
+    effectsVolume: readonly(effectsVolume),
     hud: readonly(hud),
     start,
     togglePause,
     end,
-    setMasterVolume,
-    toggleMute,
+    setMusicVolume,
+    setEffectsVolume,
+    toggleMusicMute,
+    toggleEffectsMute,
+    playUiClick,
+    unlockAudio,
     steer,
   };
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from "vue";
-import { CircleDot, HeartPulse, Shield, Snowflake, Zap } from "@lucide/vue";
+import { HeartPulse, Shield, Snowflake, Zap } from "@lucide/vue";
 import type { BuffSnapshot } from "../engine/types";
 
 defineProps<{
@@ -12,7 +12,6 @@ const buffIcons: Readonly<Record<BuffSnapshot["kind"], Component>> = {
   heal: HeartPulse,
   stasis: Snowflake,
   haste: Zap,
-  resonance: CircleDot,
 };
 
 function iconFor(kind: BuffSnapshot["kind"]): Component {
