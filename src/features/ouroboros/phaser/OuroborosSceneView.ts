@@ -16,7 +16,7 @@ const COLORS = {
 
 const TAIL_END_INDEX = 12;
 const BODY_TAIL_OVERLAP = 2;
-const ENEMY_VISUAL_DIAMETER_SCALE = 3;
+const ENEMY_VISUAL_DIAMETER_SCALE = 3.2;
 
 interface EnemyView {
   container: Phaser.GameObjects.Container;
@@ -323,7 +323,7 @@ export class OuroborosSceneView {
       } else if (enemy.kind === "wanderer") {
         view.image.setDisplaySize(diameter * 1.2, diameter * 0.86);
       } else {
-        view.image.setDisplaySize(diameter * 1.25, diameter * 0.78);
+        view.image.setDisplaySize(diameter * 1.25, diameter * 0.82);
       }
     }
   }

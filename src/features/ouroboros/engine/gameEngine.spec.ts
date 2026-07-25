@@ -345,6 +345,53 @@ describe("game engine", () => {
     expect(game.bodyLength).toBe(1031);
   });
 
+  it("preserves the previous minimum loop size after stroke-area capture", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 400 + Math.cos(angle) * 27,
+        y: 300 + Math.sin(angle) * 27,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [
+      {
+        ...createEnemy(20, 0, fixedRandom),
+        x: 400,
+        y: 300,
+      },
+    ];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toContainEqual({ type: "capture", count: 1, totalKills: 1 });
+    expect(game.enemies).toHaveLength(0);
+  });
+
+  it("throttles invalid small-loop checks", () => {
+    const game = createGameState(fixedRandom);
+    game.trail = Array.from({ length: 36 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 35;
+      return {
+        x: 400 + Math.cos(angle) * 26,
+        y: 300 + Math.sin(angle) * 26,
+      };
+    });
+    game.bodyLength = 1000;
+    game.closureCooldown = 0;
+    game.tutorialComplete = true;
+    game.enemies = [];
+
+    const events = updateGame(game, 0, fixedRandom, noCollisions);
+
+    expect(events).toEqual([]);
+    expect(game.closureCooldown).toBe(0.45);
+    expect(game.lastRing).toBeNull();
+  });
+
   it("finishes the tutorial after the first captured enemy", () => {
     const game = createGameState(fixedRandom);
     game.trail = Array.from({ length: 36 }, (_, index) => {

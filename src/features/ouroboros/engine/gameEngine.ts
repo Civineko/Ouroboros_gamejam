@@ -50,6 +50,9 @@ const FIRST_WAVE_MESSAGE = "正式开始，三角敌人会追踪蛇头！";
 const INITIAL_RING_RADIUS = 112 * (2 / 3);
 const INITIAL_RING_GAP_ANGLE = 0.48;
 const TUTORIAL_AUTO_SPEED = 32;
+const MIN_CAPTURE_REGION_AREA = 600;
+const SUCCESSFUL_CLOSURE_COOLDOWN = 1.8;
+const INVALID_CLOSURE_COOLDOWN = 0.45;
 
 export function enemyLimitFor(kills: number): number {
   return Math.min(MAX_ENEMIES, 4 + Math.floor(kills / 3));
@@ -403,7 +406,7 @@ export function updateGame(
   ) {
     const ring = game.trail.map((point) => ({ ...point }));
     const region = buildClosedStrokeRegion(ring, BODY_WIDTH / 2);
-    if (region.enclosedArea > 2200) {
+    if (region.enclosedArea > MIN_CAPTURE_REGION_AREA) {
       const trappedIds = new Set(
         game.enemies
           .filter((enemy) => region.containsCircle(enemy, enemy.size))
@@ -414,7 +417,7 @@ export function updateGame(
       game.enemies = game.enemies.filter((enemy) => !trappedIds.has(enemy.id));
       game.lastRing = ring;
       game.closureFlash = 1;
-      game.closureCooldown = 1.8;
+      game.closureCooldown = SUCCESSFUL_CLOSURE_COOLDOWN;
 
       if (captured > 0) {
         game.kills += captured;
@@ -435,6 +438,8 @@ export function updateGame(
 
       const pointsToRelease = Math.min(9, Math.max(0, game.trail.length - 25));
       game.trail.splice(0, pointsToRelease);
+    } else {
+      game.closureCooldown = INVALID_CLOSURE_COOLDOWN;
     }
   }
 
