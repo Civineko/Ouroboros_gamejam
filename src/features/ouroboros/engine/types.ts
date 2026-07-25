@@ -40,6 +40,16 @@ export interface HudSnapshot {
   message: string;
 }
 
+export interface CollisionSystem {
+  circlesOverlap: (
+    first: Point,
+    firstRadius: number,
+    second: Point,
+    secondRadius: number,
+  ) => boolean;
+  containsPoint: (polygon: readonly Point[], point: Point) => boolean;
+}
+
 export type GameEvent =
   | { type: "hit"; lives: number }
   | { type: "capture"; count: number; totalKills: number }

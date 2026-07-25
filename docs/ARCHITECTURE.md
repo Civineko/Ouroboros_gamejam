@@ -2,29 +2,28 @@
 
 ## 目标
 
-这套结构服务于一个单一游戏，而不是提前搭建多游戏平台。当前最重要的边界是：玩法规则可测试、Canvas 循环稳定、Vue 组件可独立迭代。
+这套结构服务于一个单一游戏，而不是提前搭建多游戏平台。当前最重要的边界是：玩法规则可测试、Phaser 运行时稳定、Vue 组件可独立迭代。
 
 ## 依赖方向
 
 ```text
-components ──> composables ──> engine
-     │               │
-     │               ├──────> input
-     │               └──────> rendering ──> engine types
-     └───────────────────────> engine types
+components ──> composables ──> phaser ──> engine
+     │                         │   │
+     │                         │   └────> input
+     └─────────────────────────┴────────> engine types
 
 shared 不得依赖 features
-engine 不得依赖 Vue、DOM 或 Canvas
-rendering 不得修改 GameState
+engine 不得依赖 Vue、DOM 或 Phaser
+Phaser Scene 通过快照更新 Vue，不向组件暴露可变 GameState
 ```
 
 ### `engine/`
 
 玩法的唯一事实来源。`updateGame(state, delta)` 原地推进状态并返回领域事件，闭环、碰撞、成长、敌人刷新都在这里。它不能导入 Vue 或浏览器 API，因此可以在 Node 环境直接测试。
 
-### `rendering/`
+### `phaser/`
 
-读取 `GameState` 并绘制 Canvas。这里可以改颜色、线条、光效和高 DPI 适配，但不能改变生命、得分、敌人或蛇身长度。
+Phaser 运行时边界。Scene 负责游戏循环与输入，View 负责 WebGL / Canvas 渲染，碰撞适配器使用 Phaser 的圆形相交和多边形包含判断。这里可以调整表现，但玩法数值仍由 `engine/` 管理。
 
 ### `input/`
 
@@ -32,7 +31,7 @@ rendering 不得修改 GameState
 
 ### `composables/`
 
-Vue 与游戏内核的协调层。负责 `requestAnimationFrame`、帧间隔上限、HUD 同步和资源清理。它不实现碰撞或绘图细节。
+Vue 与 Phaser 的协调层。负责创建和销毁 Phaser.Game，并将 HUD、暂停和结束状态同步为只读 Vue 状态。它不实现碰撞或绘图细节。
 
 ### `components/`
 
@@ -43,7 +42,7 @@ Vue 与游戏内核的协调层。负责 `requestAnimationFrame`、帧间隔上�
 | 角色 | 主要目录 | 合并前检查 |
 | --- | --- | --- |
 | 玩法 | `engine/`、对应 `*.spec.ts` | `npm test` |
-| Canvas / 动效 | `rendering/`、`OuroborosStage.vue` | 桌面和手机截图 |
+| Phaser / 动效 | `phaser/`、`OuroborosStage.vue` | 桌面和手机截图 |
 | UI / 交互 | `components/`、`styles/` | `npm run check`、响应式检查 |
 | 集成 | `composables/`、`app/` | 测试、构建、生命周期清理 |
 
@@ -52,11 +51,11 @@ Vue 与游戏内核的协调层。负责 `requestAnimationFrame`、帧间隔上�
 ## 运行时流程
 
 1. 输入层产生语义动作。
-2. composable 将动作交给引擎。
-3. composable 以当前帧间隔推进引擎，并将单帧间隔限制为 `0.034s`。
-4. 引擎返回 `hit / capture / empty-loop / game-over` 事件。
-5. composable 根据事件更新 HUD。
-6. Canvas 每帧读取最新状态绘制，不参与规则判定。
+2. Phaser Scene 将动作交给规则引擎。
+3. Phaser 游戏循环以当前帧间隔推进引擎，并将单帧间隔限制为 `0.034s`。
+4. 引擎通过 Phaser 碰撞适配器完成圆形和多边形命中判断。
+5. 引擎返回 `hit / capture / empty-loop / game-over` 事件。
+6. Scene 将 HUD 和运行状态快照同步给 Vue，并渲染最新 GameState。
 
 ## 改动规则
 

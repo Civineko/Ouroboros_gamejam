@@ -10,12 +10,13 @@ import {
 import {
   angleDifference,
   distance,
-  pointInPolygon,
+  nativeCollisionSystem,
   polygonArea,
   trimTrailToLength,
 } from "./geometry";
 import type {
   CardinalDirection,
+  CollisionSystem,
   Enemy,
   GameEvent,
   GameState,
@@ -152,6 +153,7 @@ export function updateGame(
   game: GameState,
   delta: number,
   random: RandomSource = Math.random,
+  collisions: CollisionSystem = nativeCollisionSystem,
 ): GameEvent[] {
   const events: GameEvent[] = [];
   game.elapsed += delta;
@@ -218,7 +220,13 @@ export function updateGame(
 
   if (game.invulnerable <= 0) {
     const collision = game.enemies.findIndex(
-      (enemy) => distance(enemy, liveHead) < enemy.size + HEAD_RADIUS - 3,
+      (enemy) =>
+        collisions.circlesOverlap(
+          enemy,
+          enemy.size,
+          liveHead,
+          HEAD_RADIUS - 3,
+        ),
     );
 
     if (collision >= 0) {
@@ -246,7 +254,7 @@ export function updateGame(
     const ring = game.trail.map((point) => ({ ...point }));
     const trappedIds = new Set(
       game.enemies
-        .filter((enemy) => pointInPolygon(enemy, ring))
+        .filter((enemy) => collisions.containsPoint(ring, enemy))
         .map((enemy) => enemy.id),
     );
     const captured = trappedIds.size;
