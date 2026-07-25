@@ -7,7 +7,6 @@ const SHIELD = 0x63c7b2;
 const HEAL = 0xf06b66;
 const STASIS = 0x78bce8;
 const HASTE = 0xf3c74f;
-const RESONANCE = 0xc58bd8;
 
 export interface PowerUpIconContext {
   graphics: Phaser.GameObjects.Graphics;
@@ -126,20 +125,6 @@ function paintHaste({ graphics, size }: PowerUpIconContext): void {
   graphics.lineBetween(1.5 * scale, -7 * scale, -2 * scale, -1 * scale);
 }
 
-function paintResonance({ graphics, size }: PowerUpIconContext): void {
-  const scale = size / 12;
-
-  graphics.fillStyle(RESONANCE, 1);
-  graphics.fillCircle(0, 0, 10.5 * scale);
-  graphics.lineStyle(1.8 * scale, INK, 1);
-  graphics.strokeCircle(0, 0, 10.5 * scale);
-  graphics.lineStyle(2 * scale, LIGHT, 0.95);
-  graphics.strokeCircle(0, 0, 6.5 * scale);
-  graphics.strokeCircle(0, 0, 3 * scale);
-  graphics.fillStyle(INK, 0.9);
-  graphics.fillCircle(0, 0, 1.4 * scale);
-}
-
 const POWER_UP_ICON_PAINTERS: Readonly<
   Record<PowerUp["kind"], PowerUpIconPainter>
 > = {
@@ -147,7 +132,6 @@ const POWER_UP_ICON_PAINTERS: Readonly<
   heal: paintHeal,
   stasis: paintStasis,
   haste: paintHaste,
-  resonance: paintResonance,
 };
 
 export function paintPowerUpIcon(context: PowerUpIconContext): void {

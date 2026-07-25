@@ -14,7 +14,6 @@ export type AudioCue =
   | "powerup-heal"
   | "powerup-stasis"
   | "powerup-haste"
-  | "powerup-resonance"
   | "game-over";
 
 export interface AudioCueDefinition {
@@ -38,7 +37,6 @@ export const AUDIO_CUE_CATALOG: Readonly<Record<AudioCue, AudioCueDefinition>> =
     "powerup-heal": { category: "effects", gain: 0.4, status: "procedural" },
     "powerup-stasis": { category: "effects", gain: 0.4, status: "procedural" },
     "powerup-haste": { category: "effects", gain: 0.4, status: "procedural" },
-    "powerup-resonance": { category: "effects", gain: 0.4, status: "procedural" },
     "game-over": { category: "effects", gain: 0.48, status: "procedural" },
   });
 

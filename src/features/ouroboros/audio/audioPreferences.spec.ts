@@ -20,6 +20,10 @@ function createStorage(initialValue: string | null = null) {
 
 describe("audio preferences", () => {
   it("uses separate defaults when no preferences are stored", () => {
+    expect(DEFAULT_AUDIO_PREFERENCES).toEqual({
+      musicVolume: 0.05,
+      effectsVolume: 0.8,
+    });
     expect(loadAudioPreferences(createStorage())).toEqual(
       DEFAULT_AUDIO_PREFERENCES,
     );
