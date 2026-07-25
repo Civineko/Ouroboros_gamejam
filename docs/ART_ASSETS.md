@@ -27,6 +27,7 @@ public/assets/ouroboros/                       最终安装包内的运行时成
 ├── items/powerups/                           五种增益道具
 ├── effects/                                  命中、闭环与增益状态反馈
 ├── ui/                                       品牌与应用图标
+│   ├── pause/                                暂停菜单面板
 │   └── font_dymon_shouxieti.otf              “圈一圈”标题商用字体
 └── audio/
     ├── music/                                BGM 与结束短曲
@@ -85,6 +86,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 | P1 | TODO | 命中特效 | `effects/sheet_hit_burst.png` | 单帧 `128x128`，6-8 帧横排 | `10-14fps`，首尾帧透明；敌人消失与蛇头受击共用，不改变命中时机 | 蛇头透明闪烁 |
 | P1 | TODO | 通用增益拾取特效 | `effects/sheet_powerup_collect.png` | 单帧 `64x64`，6 帧横排 | `12-16fps`，单色可着色，五种道具按定义颜色复用 | 当前仅让场上道具直接消失 |
 | P1 | TODO | 增益激活光环 | `effects/fx_buff_aura.png` | `96x96` 透明 PNG | 单色可着色；护环常驻，疾行/共鸣短暂强调；凝滞仍以敌人色调反馈 | HUD 有倒计时，场内缺少持续状态反馈 |
+| P1 | READY | 暂停菜单交互面板 | `ui/pause/panel_pause_controls.png` | `740x378` 透明 PNG，约 `264KB` | 仅作视觉皮肤；音乐/音效牌、滑杆和底部按钮均由真实 DOM 控件承载，碰撞与音量逻辑不进入图片 | `PauseMenu.vue` 已通过集中式 `uiArtCatalog.ts` 接入 |
 | P2 | TODO | 品牌标志 | `ui/brand_mark.svg` | 正方形 SVG | 适配浅色背景和高 DPI，轮廓清晰 | Lucide `CircleDotDashed` |
 | P2 | TODO | favicon | `ui/favicon.svg` | `64x64` SVG | Windows 窗口和浏览器 `16px` 下可辨识 | 当前临时衔尾蛇图标 |
 
@@ -100,7 +102,8 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 
 ### 不需要单独制作的美术
 
-- 开始、暂停、继续、重开和结束状态继续使用现有 Lucide 图标与 CSS 覆盖层；除非整体 UI 重新定稿，否则不制作重复 SVG。
+- 暂停菜单已使用一张完整透明面板作为视觉皮肤，不再为音乐牌、滑轨、锁链和两个按钮重复制作 SVG；真实交互仍由 Vue DOM 控件提供。
+- 开始、重开和其他未定稿状态继续使用现有 Lucide 图标与 CSS 覆盖层，除非整体 UI 重新定稿，否则不制作重复 SVG。
 - 点击/拖动转向反馈使用 Phaser 圆环、缩放和淡出绘制，不新增透明 PNG。
 - 教学完成复用闭环净化反馈，空环复用程序绘制的闭环闪光，不为同一动作制作第二套图片。
 - 场上道具脉冲、到期闪烁、蛇头无敌闪烁和敌人碰撞分离均由程序控制。
@@ -202,6 +205,7 @@ src/features/ouroboros/phaser/audio/           音频目录与运行时控制器
 ### P1 状态反馈
 
 - [x] 输出五种增益图标；在 `24px` 显示尺寸下仍能凭剪影区分，并同时供场上道具与 HUD 使用。
+- [x] 提取并接入暂停菜单透明面板，保留真实滑杆、按钮、键盘焦点与 Android `44px` 触控热区。
 - [ ] 输出闭环粒子、命中特效、通用增益拾取和增益光环。
 - [ ] 开发用 Phaser 补齐触控转向反馈，并继续复用现有 Lucide 状态图标。
 - [ ] 交付空环、护环抵消和五种增益拾取音。
