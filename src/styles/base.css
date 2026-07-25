@@ -1,0 +1,75 @@
+:root {
+  color-scheme: light;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  --paper: #f3f0e7;
+  --paper-strong: #e8e3d7;
+  --surface: #fffdf7;
+  --ink: #263b42;
+  --ink-soft: #647277;
+  --line: rgba(38, 59, 66, 0.15);
+  --stage: #48678f;
+  --teal: #5c9e94;
+  --teal-deep: #3f766f;
+  --coral: #ef624f;
+  --amber: #f2ba49;
+  --shadow: rgba(38, 50, 56, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--paper);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(rgba(38, 59, 66, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(38, 59, 66, 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  color: inherit;
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+canvas:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: var(--surface);
+  background: var(--teal-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
