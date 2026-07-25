@@ -59,6 +59,7 @@ export class OuroborosSceneView {
   private readonly head: Phaser.GameObjects.Graphics;
   private readonly enemies = new Map<number, EnemyView>();
   private readonly powerUps = new Map<number, PowerUpView>();
+  private introRevealing = false;
 
   constructor(private readonly scene: Phaser.Scene) {
     this.background = scene.add.graphics().setDepth(0);
@@ -80,11 +81,96 @@ export class OuroborosSceneView {
     if (head) {
       this.head.setPosition(head.x, head.y);
       this.head.setRotation(game.angle);
-      this.head.setAlpha(
-        game.invulnerable > 0 && Math.floor(game.invulnerable * 12) % 2 === 0
-          ? 0.45
-          : 1,
-      );
+      if (!this.introRevealing) {
+        this.head.setAlpha(
+          game.invulnerable > 0 && Math.floor(game.invulnerable * 12) % 2 === 0
+            ? 0.45
+            : 1,
+        );
+      }
+    }
+  }
+
+  playIntroReveal(): void {
+    this.introRevealing = true;
+
+    const centerX = WORLD_WIDTH / 2;
+    const centerY = WORLD_HEIGHT / 2;
+    this.background
+      .setAlpha(0)
+      .setScale(1.06)
+      .setPosition(centerX * -0.06, centerY * -0.06);
+    this.body
+      .setAlpha(0)
+      .setScale(0.78)
+      .setPosition(centerX * 0.22, centerY * 0.22);
+    this.head.setAlpha(0).setScale(0.24);
+
+    for (const view of this.enemies.values()) {
+      view.container.setAlpha(0).setScale(0.18);
+    }
+
+    this.scene.tweens.add({
+      targets: this.background,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      x: 0,
+      y: 0,
+      duration: 650,
+      ease: "Cubic.Out",
+    });
+    this.scene.tweens.add({
+      targets: this.body,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      x: 0,
+      y: 0,
+      delay: 430,
+      duration: 620,
+      ease: "Back.Out",
+    });
+    this.scene.tweens.add({
+      targets: this.head,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      delay: 600,
+      duration: 500,
+      ease: "Back.Out",
+    });
+
+    const enemyTargets = [...this.enemies.values()].map(
+      (view) => view.container,
+    );
+    this.scene.tweens.add({
+      targets: enemyTargets,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      delay: 980,
+      duration: 480,
+      ease: "Back.Out",
+      onComplete: () => {
+        this.introRevealing = false;
+      },
+    });
+  }
+
+  completeIntroReveal(): void {
+    this.introRevealing = false;
+    this.scene.tweens.killTweensOf(this.background);
+    this.scene.tweens.killTweensOf(this.body);
+    this.scene.tweens.killTweensOf(this.head);
+
+    this.background.setAlpha(1).setScale(1).setPosition(0, 0);
+    this.body.setAlpha(1).setScale(1).setPosition(0, 0);
+    this.head.setAlpha(1).setScale(1);
+
+    for (const view of this.enemies.values()) {
+      this.scene.tweens.killTweensOf(view.container);
+      view.container.setAlpha(1).setScale(1);
     }
   }
 

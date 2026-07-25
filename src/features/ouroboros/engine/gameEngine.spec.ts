@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BODY_WIDTH, WORLD_HEIGHT } from "./config";
+import { BODY_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from "./config";
 import {
   createEnemy,
   createGameState,
@@ -18,6 +18,10 @@ describe("game engine", () => {
     expect(game.trail).toHaveLength(54);
     expect(game.enemies).toHaveLength(1);
     expect(game.enemies[0]?.kind).toBe("stationary");
+    expect(game.enemies[0]).toMatchObject({
+      x: WORLD_WIDTH / 2,
+      y: WORLD_HEIGHT / 2,
+    });
     expect(game.tutorialComplete).toBe(false);
     expect(hud).toMatchObject({
       kills: 0,
@@ -26,6 +30,22 @@ describe("game engine", () => {
       enemyLimit: 4,
       message: "首尾相接，圈住敌人",
     });
+
+    const center = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
+    const radii = game.trail.map((point) =>
+      Math.hypot(point.x - center.x, point.y - center.y),
+    );
+    expect(Math.max(...radii) - Math.min(...radii)).toBeLessThan(0.001);
+
+    const tail = game.trail[0];
+    const head = game.trail.at(-1);
+    expect(tail).toBeDefined();
+    expect(head).toBeDefined();
+    if (tail && head) {
+      const opening = Math.hypot(head.x - tail.x, head.y - tail.y);
+      expect(opening).toBeGreaterThan(25);
+      expect(opening).toBeLessThan(80);
+    }
   });
 
   it("does not spawn extra enemies during the tutorial", () => {
@@ -233,7 +253,9 @@ describe("game engine", () => {
 
     expect(enemy.velocityX).toBe(0);
     expect(enemy.velocityY).toBe(0);
-    expect(enemy.y).toBeGreaterThan(bodyPoint.y);
+    expect(
+      Math.hypot(enemy.x - bodyPoint.x, enemy.y - bodyPoint.y),
+    ).toBeGreaterThan(20);
   });
 
   it("captures enemies inside a valid closed ring", () => {

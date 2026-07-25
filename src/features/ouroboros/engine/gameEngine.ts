@@ -43,6 +43,7 @@ import type {
 
 const TUTORIAL_MESSAGE = "首尾相接，圈住敌人";
 const FIRST_WAVE_MESSAGE = "正式开始，三角敌人会追踪蛇头！";
+const INITIAL_RING_GAP_ANGLE = 0.9;
 
 export function enemyLimitFor(kills: number): number {
   return Math.min(MAX_ENEMIES, 4 + Math.floor(kills / 3));
@@ -108,28 +109,45 @@ function createEdgeSpawnPosition(random: RandomSource): Point {
           };
 }
 
-function appendEnemy(game: GameState, random: RandomSource): void {
-  const spawn = planEnemySpawn({
-    id: game.nextEnemyId,
-    bodyLength: game.bodyLength,
-    trail: game.trail,
-    enemies: game.enemies,
-    random,
-    tutorial: !game.tutorialComplete,
-  });
+function appendEnemy(
+  game: GameState,
+  random: RandomSource,
+  spawnOverride?: EnemySpawnPlan,
+): void {
+  const spawn =
+    spawnOverride ??
+    planEnemySpawn({
+      id: game.nextEnemyId,
+      bodyLength: game.bodyLength,
+      trail: game.trail,
+      enemies: game.enemies,
+      random,
+      tutorial: !game.tutorialComplete,
+    });
   game.enemies.push(
     createEnemy(game.nextEnemyId, game.kills, random, spawn),
   );
   game.nextEnemyId += 1;
 }
 
+function createInitialTrail(): Point[] {
+  const center = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
+  const sweep = Math.PI * 2 - INITIAL_RING_GAP_ANGLE;
+  const radius = INITIAL_BODY_LENGTH / sweep;
+  const startAngle = INITIAL_RING_GAP_ANGLE / 2;
+
+  return Array.from({ length: INITIAL_BODY_POINTS }, (_, index) => {
+    const progress = index / (INITIAL_BODY_POINTS - 1);
+    const angle = startAngle + sweep * progress;
+    return {
+      x: center.x + Math.cos(angle) * radius,
+      y: center.y + Math.sin(angle) * radius,
+    };
+  });
+}
+
 export function createGameState(random: RandomSource = Math.random): GameState {
-  const initialSpacing = INITIAL_BODY_LENGTH / (INITIAL_BODY_POINTS - 1);
-  const initialX = (WORLD_WIDTH - INITIAL_BODY_LENGTH) / 2;
-  const trail = Array.from({ length: INITIAL_BODY_POINTS }, (_, index) => ({
-    x: initialX + index * initialSpacing,
-    y: WORLD_HEIGHT / 2,
-  }));
+  const trail = createInitialTrail();
   const initialHead = trail.at(-1) ?? {
     x: WORLD_WIDTH / 2,
     y: WORLD_HEIGHT / 2,
@@ -160,7 +178,10 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     nextPowerUpId: 0,
   };
 
-  appendEnemy(game, random);
+  appendEnemy(game, random, {
+    kind: "stationary",
+    position: { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 },
+  });
   game.powerUpSpawnClock = nextPowerUpInterval(random);
   return game;
 }

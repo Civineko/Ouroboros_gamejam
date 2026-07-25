@@ -44,17 +44,23 @@ defineExpose<OuroborosStageExpose>({
     <div class="canvas-frame">
       <div ref="container" class="phaser-host" aria-label="衔尾蛇游戏区域" />
 
-      <div v-if="!started" class="stage-cover">
-        <CircleDotDashed :size="48" :stroke-width="1.5" aria-hidden="true" />
-        <p>DEMO 02</p>
-        <h2>让首尾再次相遇</h2>
-        <button type="button" class="primary-command" @click="emit('start')">
-          <Play :size="17" fill="currentColor" />
-          开始游戏
-        </button>
-      </div>
+      <Transition name="intro-cover">
+        <div v-if="!started" class="stage-cover stage-cover-intro">
+          <div class="intro-brand">
+            <p>OUROBOROS SURVIVOR</p>
+            <h1>衔尾蛇幸存者</h1>
+            <button type="button" class="primary-command" @click="emit('start')">
+              <Play :size="17" fill="currentColor" />
+              开始游戏
+            </button>
+          </div>
+        </div>
+      </Transition>
 
-      <div v-else-if="paused && !gameOver" class="stage-cover stage-cover-dark stage-cover-dialog">
+      <div
+        v-if="started && paused && !gameOver"
+        class="stage-cover stage-cover-dark stage-cover-dialog"
+      >
         <PauseMenu
           :master-volume="masterVolume"
           :muted="muted"
@@ -65,7 +71,7 @@ defineExpose<OuroborosStageExpose>({
         />
       </div>
 
-      <div v-else-if="gameOver" class="stage-cover">
+      <div v-if="gameOver" class="stage-cover">
         <CircleDotDashed class="coral" :size="48" :stroke-width="1.5" />
         <p>THE LOOP IS BROKEN</p>
         <h2>衔尾之环断开了</h2>
@@ -132,6 +138,33 @@ defineExpose<OuroborosStageExpose>({
   backdrop-filter: blur(4px);
 }
 
+.stage-cover-intro {
+  color: #20373e;
+  background: rgba(244, 244, 236, 0.24);
+  -webkit-backdrop-filter: blur(3px) saturate(0.84) brightness(1.04);
+  backdrop-filter: blur(3px) saturate(0.84) brightness(1.04);
+}
+
+.stage-cover-intro::after {
+  position: absolute;
+  inset: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  pointer-events: none;
+  content: "";
+  border: 1px solid rgba(255, 253, 247, 0.28);
+}
+
+.intro-brand {
+  --intro-brand-offset: 120px;
+
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: brand-arrival 650ms cubic-bezier(0.2, 0.75, 0.25, 1) 780ms both;
+}
+
 .stage-cover > svg {
   margin-bottom: 14px;
   color: var(--teal-deep);
@@ -146,6 +179,22 @@ defineExpose<OuroborosStageExpose>({
   color: var(--ink-soft);
   font-size: 9px;
   font-weight: 900;
+}
+
+.stage-cover-intro p {
+  color: rgba(38, 59, 66, 0.68);
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
+.stage-cover h1 {
+  margin: 9px 0 24px;
+  font-family: Georgia, "Songti SC", "STSong", serif;
+  font-size: 46px;
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: 0;
+  text-shadow: 0 2px 0 rgba(255, 253, 247, 0.48);
 }
 
 .stage-cover h2 {
@@ -193,11 +242,56 @@ defineExpose<OuroborosStageExpose>({
   border: 0;
   border-radius: 8px;
   box-shadow: 5px 6px 0 rgba(38, 59, 66, 0.18);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.primary-command:hover {
+  background: #304a53;
+  transform: translateY(-1px);
+  box-shadow: 5px 8px 0 rgba(38, 59, 66, 0.16);
+}
+
+.primary-command:active {
+  transform: translate(3px, 4px);
+  box-shadow: 2px 2px 0 rgba(38, 59, 66, 0.18);
 }
 
 .primary-command.amber {
   color: var(--ink);
   background: var(--amber);
+}
+
+.intro-cover-leave-active {
+  transition:
+    opacity 380ms ease,
+    backdrop-filter 380ms ease;
+}
+
+.intro-cover-leave-to {
+  opacity: 0;
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+}
+
+@keyframes brand-arrival {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(calc(var(--intro-brand-offset) + 10px));
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(var(--intro-brand-offset));
+  }
+}
+
+@media (max-height: 560px) {
+  .intro-brand {
+    --intro-brand-offset: 54px;
+  }
 }
 
 @media (max-width: 560px) {
@@ -216,8 +310,14 @@ defineExpose<OuroborosStageExpose>({
     font-size: 24px;
   }
 
+  .stage-cover h1 {
+    margin: 7px 0 18px;
+    font-size: 34px;
+  }
+
   .primary-command {
-    min-height: 38px;
+    min-width: 154px;
+    min-height: 44px;
   }
 }
 </style>
