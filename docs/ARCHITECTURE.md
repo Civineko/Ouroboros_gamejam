@@ -25,6 +25,8 @@ Phaser Scene 通过快照更新 Vue，不向组件暴露可变 GameState
 
 具体类型协议、图标语言和新增步骤见 [ENEMIES.md](ENEMIES.md)。
 
+增益扩展集中在 `engine/powerups/`：`powerUpCatalog.ts` 保存类型元数据，`powerUpSpawn.ts` 只规划安全刷新点，`powerUpEffects.ts` 管理即时与持续效果，`powerUpSystem.ts` 负责单帧调度。具体规则和扩展步骤见 [POWER_UPS.md](POWER_UPS.md)。
+
 ### `phaser/`
 
 Phaser 运行时边界。Scene 负责游戏循环与输入，View 负责 WebGL / Canvas 渲染，碰撞适配器使用 Phaser 的圆形、胶囊线段和多边形判断。这里可以调整表现，但玩法数值仍由 `engine/` 管理。
@@ -71,7 +73,7 @@ Vue 与 Phaser 的协调层。负责创建和销毁 Phaser.Game，并将 HUD、�
 2. Phaser Scene 将动作交给规则引擎。
 3. Phaser 游戏循环以当前帧间隔推进引擎，并将单帧间隔限制为 `0.034s`。
 4. 引擎通过 Phaser 碰撞适配器完成圆形和多边形命中判断。
-5. 引擎返回 `hit / capture / empty-loop / game-over` 事件。
+5. 引擎返回 `hit / capture / power-up-collected / shield-blocked / game-over` 等领域事件。
 6. Scene 将 HUD 和运行状态快照同步给 Vue，并渲染最新 GameState。
 
 ## 改动规则

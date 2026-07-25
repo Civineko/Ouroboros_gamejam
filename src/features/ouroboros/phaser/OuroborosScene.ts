@@ -20,6 +20,8 @@ import { OuroborosCameraController } from "./camera/OuroborosCameraController";
 import { OuroborosSceneView } from "./OuroborosSceneView";
 import { phaserCollisionSystem } from "./phaserCollisionSystem";
 
+const HUD_PUBLISH_INTERVAL = 0.2;
+
 export interface SceneStatus {
   started: boolean;
   paused: boolean;
@@ -40,6 +42,7 @@ export class OuroborosScene extends Phaser.Scene {
   private paused = false;
   private gameOver = false;
   private skipNextUpdate = true;
+  private hudPublishClock = 0;
 
   constructor(
     private readonly callbacks: OuroborosSceneCallbacks,
@@ -72,9 +75,15 @@ export class OuroborosScene extends Phaser.Scene {
     this.skipNextUpdate = false;
 
     if (this.running && !this.paused) {
-      this.processEvents(
-        updateGame(this.state, delta, Math.random, phaserCollisionSystem),
+      const events = updateGame(
+        this.state,
+        delta,
+        Math.random,
+        phaserCollisionSystem,
       );
+      this.hudPublishClock += delta;
+      this.processEvents(events);
+      if (this.hudPublishClock >= HUD_PUBLISH_INTERVAL) this.publishHud();
     }
 
     this.sceneView?.render(this.state);
@@ -88,6 +97,7 @@ export class OuroborosScene extends Phaser.Scene {
     this.paused = false;
     this.gameOver = false;
     this.skipNextUpdate = true;
+    this.hudPublishClock = 0;
     this.snapCameraToHead();
     this.publishStatus();
     this.publishHud();
@@ -140,6 +150,7 @@ export class OuroborosScene extends Phaser.Scene {
   }
 
   private publishHud(): void {
+    this.hudPublishClock = 0;
     this.callbacks.onHudChange(snapshotHud(this.state));
   }
 

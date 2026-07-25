@@ -55,6 +55,29 @@ describe("enemy motion", () => {
     expect(tracker.collisionRecovery).toBeCloseTo(0.04);
   });
 
+  it("applies an external speed multiplier without mutating base speed", () => {
+    const tracker = {
+      ...createEnemy(2, 0, fixedRandom),
+      x: 500,
+      y: 300,
+      velocityX: 40,
+      velocityY: 0,
+      heading: 0,
+    };
+    const baseSpeed = tracker.speed;
+
+    updateEnemyMotion(
+      [tracker],
+      { x: 700, y: 300 },
+      1,
+      fixedRandom,
+      0.5,
+    );
+
+    expect(tracker.speed).toBe(baseSpeed);
+    expect(tracker.x - 500).toBeLessThan(baseSpeed);
+  });
+
   it("separates moving enemies after a flock update", () => {
     const wanderer = { ...createEnemy(1, 0, fixedRandom), x: 400, y: 300 };
     const tracker = { ...createEnemy(2, 0, fixedRandom), x: 400, y: 300 };

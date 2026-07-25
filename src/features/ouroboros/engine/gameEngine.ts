@@ -23,6 +23,13 @@ import {
   planEnemySpawn,
   type EnemySpawnPlan,
 } from "./enemies/enemySpawn";
+import {
+  powerUpModifiers,
+  snapshotBuffs,
+  tickPowerUpEffects,
+} from "./powerups/powerUpEffects";
+import { nextPowerUpInterval } from "./powerups/powerUpSpawn";
+import { updatePowerUps } from "./powerups/powerUpSystem";
 import type {
   CardinalDirection,
   CollisionSystem,
@@ -141,9 +148,15 @@ export function createGameState(random: RandomSource = Math.random): GameState {
     invulnerable: 0,
     nextEnemyId: 0,
     message: "引导蛇身围住敌人，让蛇头触碰蛇尾",
+    powerUps: [],
+    activeEffects: [],
+    shieldCharges: 0,
+    powerUpSpawnClock: 0,
+    nextPowerUpId: 0,
   };
 
   for (let index = 0; index < 3; index += 1) appendEnemy(game, random);
+  game.powerUpSpawnClock = nextPowerUpInterval(random);
   return game;
 }
 
@@ -156,6 +169,7 @@ export function snapshotHud(game: GameState): HudSnapshot {
     enemyLimit: enemyLimitFor(game.kills),
     nextGrowth: Math.max(1, 5 - (game.kills % 5)),
     message: game.message,
+    buffs: snapshotBuffs(game),
   };
 }
 
@@ -202,6 +216,8 @@ export function updateGame(
   game.closureCooldown = Math.max(0, game.closureCooldown - delta);
   game.closureFlash = Math.max(0, game.closureFlash - delta * 1.4);
   game.invulnerable = Math.max(0, game.invulnerable - delta);
+  tickPowerUpEffects(game, delta);
+  const frameModifiers = powerUpModifiers(game);
 
   const head = game.trail.at(-1);
   if (!head) return events;
@@ -211,7 +227,10 @@ export function updateGame(
       game.target.y - head.y,
       game.target.x - head.x,
     );
-    const turnLimit = delta * (3.3 - Math.min(0.65, game.kills * 0.012));
+    const turnLimit =
+      delta *
+      (3.3 - Math.min(0.65, game.kills * 0.012)) *
+      frameModifiers.snakeTurn;
     const turn = Math.max(
       -turnLimit,
       Math.min(turnLimit, angleDifference(targetAngle, game.angle)),
@@ -219,7 +238,8 @@ export function updateGame(
     game.angle += turn;
   }
 
-  const speed = 150 + Math.min(42, game.kills * 1.25);
+  const speed =
+    (150 + Math.min(42, game.kills * 1.25)) * frameModifiers.snakeSpeed;
   const nextHead = {
     x: head.x + Math.cos(game.angle) * speed * delta,
     y: head.y + Math.sin(game.angle) * speed * delta,
@@ -253,7 +273,17 @@ export function updateGame(
   const liveHead = game.trail.at(-1);
   if (!liveHead) return events;
 
-  updateEnemyMotion(game.enemies, liveHead, delta, random);
+  events.push(
+    ...updatePowerUps(game, liveHead, delta, random, collisions),
+  );
+  const activeModifiers = powerUpModifiers(game);
+  updateEnemyMotion(
+    game.enemies,
+    liveHead,
+    delta,
+    random,
+    activeModifiers.enemySpeed,
+  );
 
   const headHits = resolveEnemySnakeCollisions(
     game.enemies,
@@ -271,14 +301,21 @@ export function updateGame(
     }
 
     if (game.invulnerable <= 0) {
-      game.lives -= 1;
-      game.invulnerable = 1.4;
-      game.message =
-        game.lives > 0 ? "敌人撞到了蛇头，保持移动！" : "衔尾之环断开了";
-      events.push({ type: "hit", lives: game.lives });
+      if (game.shieldCharges > 0) {
+        game.shieldCharges -= 1;
+        game.invulnerable = 0.45;
+        game.message = "护环抵消了这次伤害";
+        events.push({ type: "shield-blocked" });
+      } else {
+        game.lives -= 1;
+        game.invulnerable = 1.4;
+        game.message =
+          game.lives > 0 ? "敌人撞到了蛇头，保持移动！" : "衔尾之环断开了";
+        events.push({ type: "hit", lives: game.lives });
 
-      if (game.lives <= 0) {
-        events.push({ type: "game-over" });
+        if (game.lives <= 0) {
+          events.push({ type: "game-over" });
+        }
       }
     }
   }
@@ -288,7 +325,7 @@ export function updateGame(
     liveTail &&
     game.closureCooldown <= 0 &&
     game.trail.length > 34 &&
-    distance(liveHead, liveTail) < 25 &&
+    distance(liveHead, liveTail) < activeModifiers.closureDistance &&
     polygonArea(game.trail) > 2200
   ) {
     const ring = game.trail.map((point) => ({ ...point }));

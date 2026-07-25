@@ -1,7 +1,14 @@
 import Phaser from "phaser";
-import { BODY_WIDTH, HEAD_RADIUS, TAIL_RADIUS, WORLD_HEIGHT, WORLD_WIDTH } from "../engine/config";
-import type { Enemy, GameState, Point } from "../engine/types";
+import {
+  BODY_WIDTH,
+  HEAD_RADIUS,
+  TAIL_RADIUS,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+} from "../engine/config";
+import type { Enemy, GameState, Point, PowerUp } from "../engine/types";
 import { paintEnemyIcon } from "./assets/placeholders/enemyIconPainters";
+import { paintPowerUpIcon } from "./assets/placeholders/powerUpIconPainters";
 
 const COLORS = {
   stage: 0x48678f,
@@ -18,6 +25,11 @@ const COLORS = {
 } as const;
 
 interface EnemyView {
+  container: Phaser.GameObjects.Container;
+  graphics: Phaser.GameObjects.Graphics;
+}
+
+interface PowerUpView {
   container: Phaser.GameObjects.Container;
   graphics: Phaser.GameObjects.Graphics;
 }
@@ -46,6 +58,7 @@ export class OuroborosSceneView {
   private readonly body: Phaser.GameObjects.Graphics;
   private readonly head: Phaser.GameObjects.Graphics;
   private readonly enemies = new Map<number, EnemyView>();
+  private readonly powerUps = new Map<number, PowerUpView>();
 
   constructor(private readonly scene: Phaser.Scene) {
     this.background = scene.add.graphics().setDepth(0);
@@ -60,6 +73,7 @@ export class OuroborosSceneView {
   render(game: GameState): void {
     this.drawRing(game);
     this.syncEnemies(game);
+    this.syncPowerUps(game);
     this.drawBody(game);
 
     const head = game.trail.at(-1);
@@ -77,6 +91,8 @@ export class OuroborosSceneView {
   destroy(): void {
     for (const view of this.enemies.values()) view.container.destroy(true);
     this.enemies.clear();
+    for (const view of this.powerUps.values()) view.container.destroy(true);
+    this.powerUps.clear();
   }
 
   private drawBackground(): void {
@@ -187,6 +203,53 @@ export class OuroborosSceneView {
 
     const view = { container, graphics };
     this.enemies.set(enemy.id, view);
+    return view;
+  }
+
+  private syncPowerUps(game: GameState): void {
+    const liveIds = new Set(game.powerUps.map((powerUp) => powerUp.id));
+    for (const [id, view] of this.powerUps) {
+      if (!liveIds.has(id)) {
+        view.container.destroy(true);
+        this.powerUps.delete(id);
+      }
+    }
+
+    for (const powerUp of game.powerUps) {
+      const view =
+        this.powerUps.get(powerUp.id) ?? this.createPowerUpView(powerUp);
+      const pulse = 1 + Math.sin(game.elapsed * 4.8 + powerUp.phase) * 0.08;
+      const expiryAlpha =
+        powerUp.ttl < 2 && Math.floor(powerUp.ttl * 8) % 2 === 0 ? 0.38 : 1;
+
+      view.container
+        .setPosition(powerUp.x, powerUp.y)
+        .setScale(pulse)
+        .setAlpha(expiryAlpha);
+      view.graphics.clear();
+      view.graphics.fillStyle(COLORS.shadow, 0.18);
+      view.graphics.fillCircle(3, 4, powerUp.radius + 7);
+      view.graphics.fillStyle(0xfff9ec, 0.94);
+      view.graphics.fillCircle(0, 0, powerUp.radius + 6);
+      view.graphics.lineStyle(2, COLORS.ink, 0.72);
+      view.graphics.strokeCircle(0, 0, powerUp.radius + 6);
+      paintPowerUpIcon({
+        graphics: view.graphics,
+        powerUp,
+        size: powerUp.radius,
+      });
+    }
+  }
+
+  private createPowerUpView(powerUp: PowerUp): PowerUpView {
+    const container = this.scene.add
+      .container(powerUp.x, powerUp.y)
+      .setDepth(2.5);
+    const graphics = this.scene.add.graphics();
+    container.add(graphics);
+
+    const view = { container, graphics };
+    this.powerUps.set(powerUp.id, view);
     return view;
   }
 }

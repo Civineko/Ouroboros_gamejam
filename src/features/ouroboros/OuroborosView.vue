@@ -5,6 +5,7 @@ import OuroborosIntro from "./components/OuroborosIntro.vue";
 import GameHud from "./components/GameHud.vue";
 import OuroborosStage from "./components/OuroborosStage.vue";
 import DifficultyRail from "./components/DifficultyRail.vue";
+import PowerUpBar from "./components/PowerUpBar.vue";
 import type { OuroborosStageExpose } from "./components/OuroborosStage.vue";
 import { useOuroborosGame } from "./composables/useOuroborosGame";
 
@@ -26,6 +27,7 @@ const game = useOuroborosGame(() => stage.value?.getContainer() ?? null);
 
       <section class="play-column" aria-label="衔尾蛇游戏">
         <GameHud :hud="game.hud.value" />
+        <PowerUpBar :buffs="game.hud.value.buffs" />
         <OuroborosStage
           ref="stage"
           :started="game.started.value"

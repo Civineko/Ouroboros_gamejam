@@ -4,6 +4,16 @@ export interface Point {
 }
 
 export type EnemyKind = "stationary" | "wanderer" | "tracker";
+export type PowerUpKind =
+  | "shield"
+  | "heal"
+  | "stasis"
+  | "haste"
+  | "resonance";
+export type TimedPowerUpKind = Extract<
+  PowerUpKind,
+  "stasis" | "haste" | "resonance"
+>;
 
 export interface Enemy extends Point {
   id: number;
@@ -17,6 +27,19 @@ export interface Enemy extends Point {
   heading: number;
   behaviorClock: number;
   collisionRecovery: number;
+}
+
+export interface PowerUp extends Point {
+  id: number;
+  kind: PowerUpKind;
+  radius: number;
+  ttl: number;
+  phase: number;
+}
+
+export interface ActiveEffect {
+  kind: TimedPowerUpKind;
+  remaining: number;
 }
 
 export interface GameState {
@@ -36,6 +59,17 @@ export interface GameState {
   invulnerable: number;
   nextEnemyId: number;
   message: string;
+  powerUps: PowerUp[];
+  activeEffects: ActiveEffect[];
+  shieldCharges: number;
+  powerUpSpawnClock: number;
+  nextPowerUpId: number;
+}
+
+export interface BuffSnapshot {
+  kind: PowerUpKind;
+  label: string;
+  remaining: number | null;
 }
 
 export interface HudSnapshot {
@@ -46,6 +80,7 @@ export interface HudSnapshot {
   enemyLimit: number;
   nextGrowth: number;
   message: string;
+  buffs: readonly BuffSnapshot[];
 }
 
 export interface CollisionContact {
@@ -75,7 +110,9 @@ export type GameEvent =
   | { type: "hit"; lives: number }
   | { type: "capture"; count: number; totalKills: number }
   | { type: "empty-loop" }
-  | { type: "game-over" };
+  | { type: "game-over" }
+  | { type: "power-up-collected"; kind: PowerUpKind }
+  | { type: "shield-blocked" };
 
 export type CardinalDirection = "up" | "down" | "left" | "right";
 
